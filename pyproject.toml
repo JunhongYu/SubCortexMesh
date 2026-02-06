@@ -22,3 +22,6 @@ license = "GPL-3.0-only"
 
 [project.urls]
 Repository = "https://github.com/chabld/SubCortexMesh"
+
+[tool.setuptools] 
+packages = ["subcortexmesh"]
