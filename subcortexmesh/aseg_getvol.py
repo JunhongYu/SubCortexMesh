@@ -2,10 +2,10 @@
 ##################getting subcortical volumes from aseg##############################
 
 import os
-import re
 import ants
 from typing import Optional, Union
 from pathlib import Path
+from subcortexmesh import template_data_fetch
 
 def aseg_getvol(
     inputdir: Union[str, Path],
@@ -44,17 +44,19 @@ def aseg_getvol(
     
     #other paths checks
     if not os.path.exists(f"{inputdir}"):
-        raise FileNotFoundError(f"Subjects directory not found. Please verify the path provided as inputdir.")
+        raise FileNotFoundError("Subjects directory not found. Please verify the path provided as inputdir.")
     
     #FreeSurfer loaded check
     if os.system('mri_segstats > /dev/null') != 256:
-        raise OSError(f"FreeSurfer seems to be unavailable. Please make sure it is loaded in the environment and the FREESURFER_HOME variable set.")
+        raise OSError("FreeSurfer seems to be unavailable. Please make sure it is loaded in the environment and the FREESURFER_HOME variable set.")
     
-    if silent==False: print(f"Writing the {outputdir}/sub_volumes directory...")
+    if not silent: 
+        print(f"Writing the {outputdir}/sub_volumes directory...")
     os.makedirs(os.path.join(f"{outputdir}/sub_volumes"), exist_ok=True)
     
-    if not os.path.exists(f"{outputdir}/sub_volumes/aseg_labels.txt" or overwrite==True):
-        if silent==False: print("Extracting the aseg atlas ROI labels...")
+    if not os.path.exists(f"{outputdir}/sub_volumes/aseg_labels.txt" or overwrite):
+        if not silent: 
+            print("Extracting the aseg atlas ROI labels...")
         #aseg.mgz was 7.4.1's $FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz
         _ = os.system(f"mri_segstats --seg {toolboxdata}/template_data/fsaverage/aseg.mgz --sum {outputdir}/sub_volumes/aseg_labels.txt  >/dev/null")
     
@@ -68,21 +70,24 @@ def aseg_getvol(
     subindex=0
     for subid in sub_list: 
         subindex=subindex+1
-        if silent==False: print(f"Processing {subid} ... [{subindex}/{len(sub_list)}]")
+        if not silent: 
+            print(f"Processing {subid} ... [{subindex}/{len(sub_list)}]")
         
         #####################################################################################
         ##################Coregistration of subject's aseg to fsaverage######################
         
         if not os.path.exists(f"{inputdir}/{subid}/mri/aseg.mgz"):
-            if silent==False: print(f"{subid} has no aseg.mgz file in its mri/ directory.")
+            if not silent: 
+                print(f"{subid} has no aseg.mgz file in its mri/ directory.")
         
         #will make a inputdirectory called "ants" in the freesurfer output for the warped volumes for tidiness
         antsdir=f"{outputdir}/sub_volumes/{subid}/ants_coreg"
         os.makedirs(os.path.join(f"{antsdir}"), exist_ok=True)
         #check if coregistration done already
-        if not os.path.exists(f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz") or overwrite==True:
+        if not os.path.exists(f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz") or overwrite:
             #resample subject's own aseg to fsaverage space for alignment
-            if silent==False: print(f"Coregistering {subid}'s aseg to fsaverage before volumes are extracted...")
+            if not silent: 
+                print(f"Coregistering {subid}'s aseg to fsaverage before volumes are extracted...")
             #mgz are converted to nii.gz as ANTS uses those
             _ = os.system(f"mri_convert {inputdir}/{subid}/mri/aseg.mgz {antsdir}/aseg.nii.gz >/dev/null")
             _ = os.system(f"mri_convert {inputdir}/{subid}/mri/T1.mgz {antsdir}/T1.nii.gz >/dev/null")
@@ -104,10 +109,12 @@ def aseg_getvol(
              
             #error if registered volumes did not output successfully
             if os.path.exists(f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz"):
-                if silent==False: print(f"=> Done: coregistered volume stored to {antsdir}")
+                if not silent: 
+                    print(f"=> Done: coregistered volume stored to {antsdir}")
                 asegvol=f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz"
             else:
-                if silent==False: print("Coregistration of aseg for $subid failed. Subcortical volumes will not be outputted.")
+                if not silent: 
+                    print("Coregistration of aseg for $subid failed. Subcortical volumes will not be outputted.")
         else:
             asegvol=f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz"
         
@@ -117,7 +124,8 @@ def aseg_getvol(
         #if coregistration worked, separating each ROI from the coregistered aseg
         if os.path.exists(asegvol):
             
-            if silent==False: print(f"Splitting subcortical volumes to {outputdir}/sub_volumes/{subid}/...")
+            if not silent: 
+                print(f"Splitting subcortical volumes to {outputdir}/sub_volumes/{subid}/...")
             
             #get volumes of each aseg subcortical region separately
             #read through FreeSurferColorLUT.txt, which contains aseg ROI labels, and extract their volume masks independently
@@ -129,20 +137,26 @@ def aseg_getvol(
               for line in f:
                   line = line.rstrip("\n")
                   # Skip empty lines or comments
-                  if not line or line.startswith("#"): continue
+                  if not line or line.startswith("#"): 
+                    continue
                   #get index (first column)
-                  parts = line.split(); index = int(parts[0]) 
+                  parts = line.split()
+                  index = int(parts[0]) 
                   #stop once index reaches 251 (subsequent ROI labels ignored)
-                  if index >= 251: break
+                  if index >= 251: 
+                    break
                   #if index not among indices found in aseg.mgz,skip 
-                  if index not in aseg_indices: continue
-                  if index in skip_indices: continue
+                  if index not in aseg_indices: 
+                    continue
+                  if index in skip_indices: 
+                    continue
                   #get ROI name 
                   label = parts[1] if len(parts) > 1 else None
                     
                   #Check if volume was extracted already
-                  if not os.path.exists(f"{outputdir}/sub_volumes/{subid}/{label}.nii.gz") or overwrite==True:
-                      if silent==False: print(f"=> Extracting {label} ...")
+                  if not os.path.exists(f"{outputdir}/sub_volumes/{subid}/{label}.nii.gz") or overwrite:
+                      if not silent: 
+                        print(f"=> Extracting {label} ...")
                       
                       #Get ROI's mask and multiply with original labels to preserve labelling
                       _ = os.system(f"mri_binarize --i {asegvol} --match {index} --o {outputdir}/sub_volumes/{subid}/{label}.mgz > /dev/null")
@@ -151,4 +165,5 @@ def aseg_getvol(
                       _ = os.system(f"mri_convert {outputdir}/sub_volumes/{subid}/{label}.mgz {outputdir}/sub_volumes/{subid}/{label}.nii.gz > /dev/null")
                       os.remove(f"{outputdir}/sub_volumes/{subid}/{label}.mgz") #no longer need the mgz
                   else:
-                    if silent==False: print(f"=> {label} already extracted")
+                    if not silent: 
+                        print(f"=> {label} already extracted")

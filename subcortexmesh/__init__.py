@@ -5,3 +5,11 @@ from subcortexmesh.aseg_getvol import (aseg_getvol)
 from subcortexmesh.vol2surf import (vol2surf)
 from subcortexmesh.mesh_metrics import (mesh_metrics)
 from subcortexmesh.merge_all import (merge_all)
+
+__all__ = [
+    "template_data_fetch",
+    "aseg_getvol",
+    "vol2surf",
+    "mesh_metrics",
+    "merge_all",
+]

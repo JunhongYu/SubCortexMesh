@@ -29,7 +29,7 @@ def template_data_fetch(
     
     #check if template data exists
     homedir=Path.home()
-    if datapath==None: 
+    if datapath is None: 
         toolboxdatadir=f"{homedir}/subcortexmesh_data" 
     else: 
         toolboxdatadir=datapath
@@ -37,7 +37,7 @@ def template_data_fetch(
     if not os.path.exists(f"{toolboxdatadir}/template_data/{template}"):
         #prompts
         options = ["Yes (home directory)", "Yes (custom path)", "No"]
-        if datapath==None: 
+        if datapath is None: 
             print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
         else:
             print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run and was not found inside {datapath}. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
@@ -68,7 +68,8 @@ def template_data_fetch(
         #if successful, open and unzip
         if os.path.exists(f"{templatedir}/{template}.zip"): 
             print("Unzipping...")
-            with zipfile.ZipFile(f"{templatedir}/{template}.zip", "r") as zip_ref: zip_ref.extractall(f"{templatedir}")
+            with zipfile.ZipFile(f"{templatedir}/{template}.zip", "r") as zip_ref: 
+                zip_ref.extractall(f"{templatedir}")
             if not os.path.exists(f"{templatedir}/{template}"): 
                 raise OSError(f"Unzipping failed. Please try again or unzip {templatedir}/{template}.zip manually")
             else: 

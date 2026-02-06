@@ -4,13 +4,11 @@
 import pyvista as pv
 import numpy as np
 import pandas as pd 
-import pickle
 import os
-import re 
 import vtk
-import sys
 from typing import Optional, Union
 from pathlib import Path
+from subcortexmesh import template_data_fetch
 
 def merge_all(
     inputdir: Union[str, Path],
@@ -62,7 +60,6 @@ def merge_all(
     def mesh_merger():
         appendFilter = vtk.vtkAppendPolyData()
         for i, mesh in enumerate(mesh_list):
-            base = re.sub(r'\.vtk?$', '', mesh)
             meshfile=load_mesh(f"{inputdir}/{subid}/{mesh}")
             
             # Add string array with ROI name
@@ -78,7 +75,7 @@ def merge_all(
         appendFilter.Update()
         merged_mesh = appendFilter.GetOutput()
         
-        if plot_merged==True:
+        if plot_merged:
             vis_merged()
         
         return merged_mesh
@@ -133,12 +130,14 @@ def merge_all(
     
     for subid in sub_list:
         
-        if silent==False: print(f"Creating all-aseg surfaces for {subid}...")
+        if not silent: 
+            print(f"Creating all-aseg surfaces for {subid}...")
         
         for metric in ['thickness', 'surfarea']:
             
-            if not os.path.exists(f"{inputdir}/{subid}/allaseg_{metric}.vtk") or overwrite==True:
-                if silent==False: print(f"=> {metric}")
+            if not os.path.exists(f"{inputdir}/{subid}/allaseg_{metric}.vtk") or overwrite:
+                if not silent: 
+                    print(f"=> {metric}")
                 
                 #listing files for that metric
                 mesh_list = [
@@ -155,11 +154,13 @@ def merge_all(
                     for roi in roi_order:
                         #find filename in mesh_list that starts with ROI label
                         matches = [f for f in mesh_list if f.startswith(roi) and f.endswith(".vtk")]
-                        if matches: mesh_list_sorted.extend(matches)
+                        if matches: 
+                            mesh_list_sorted.extend(matches)
                     mesh_list = mesh_list_sorted
                     
                     if len(mesh_list) < 19:
-                        if silent==False: print(f"{metric} ignored: all 19 subcortices must be available to create the aseg-wide surface.")
+                        if not silent: 
+                            print(f"{metric} ignored: all 19 subcortices must be available to create the aseg-wide surface.")
                     else:
                         #merge mesh
                         merged_mesh=mesh_merger()
@@ -170,6 +171,8 @@ def merge_all(
                         writer.SetInputData(merged_mesh)
                         _ = writer.Write()
                 else:
-                    if silent==False: print(f"No mesh file (.vtk) found at all for {subid}.")
+                    if not silent: 
+                        print(f"No mesh file (.vtk) found at all for {subid}.")
             else:
-                if silent==False: print(f"=> {metric} already merged")
+                if not silent: 
+                    print(f"=> {metric} already merged")

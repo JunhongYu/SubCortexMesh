@@ -7,7 +7,7 @@ import nibabel as nib
 import re
 import os
 import pyvista as pv
-from typing import Optional, Union
+from typing import Union
 from pathlib import Path
 
 def vol2surf(
@@ -59,13 +59,15 @@ def vol2surf(
         if os.path.isdir(os.path.join(inputdir, d))]
     
     #creates folder where surfaces will go 
-    if silent==False: print(f"Writing the {outputdir}/sub_surfaces directory...")
+    if not silent: 
+        print(f"Writing the {outputdir}/sub_surfaces directory...")
     os.makedirs(f"{outputdir}/sub_surfaces", exist_ok=True)
     
     subindex=0
     for subid in sub_list:
         subindex=subindex+1
-        if silent==False: print(f"Creating surface meshes for {subid}... [{subindex}/{len(sub_list)}]") 
+        if not silent: 
+            print(f"Creating surface meshes for {subid}... [{subindex}/{len(sub_list)}]") 
         
         #make subject folder
         os.makedirs(os.path.join(f"{outputdir}/sub_surfaces/{subid}"), exist_ok=True)
@@ -82,7 +84,7 @@ def vol2surf(
                 base = re.sub(r'\.nii(\.gz)?$', '', vol)
                 os.makedirs(subdir, exist_ok=True)
                 
-                if not os.path.exists(f"{subdir}/{base.lower()}.vtk") or overwrite==True:
+                if not os.path.exists(f"{subdir}/{base.lower()}.vtk") or overwrite:
                     #Load volume with VTK
                     reader = vtk.vtkNIFTIImageReader()
                     reader.SetFileName(nifti_file)
@@ -92,7 +94,7 @@ def vol2surf(
                     roi_label = int(np.max(nib.load(nifti_file).get_fdata()))
                     
                     #dilate and erode volume to eliminate artefacts
-                    if dilate_erode==True:
+                    if dilate_erode:
                         dilate = vtk.vtkImageDilateErode3D()
                         dilate.SetInputConnection(reader.GetOutputPort())
                         dilate.SetDilateValue(roi_label)   # grow ROI voxels
@@ -119,18 +121,18 @@ def vol2surf(
                     #Smooth the surface as pixellated 3D volume will make surface coarse 
                     #https://examples.vtk.org/site/Cxx/Modelling/SmoothDiscreteMarchingCubes/ default settings
                     if isinstance(smoothing, (int, float)):
-                        passBand = 0.001;
-                        featureAngle = 120.0;
+                        passBand = 0.001
+                        featureAngle = 120.0
                         smooth = vtk.vtkWindowedSincPolyDataFilter() #smoothing function
                         smooth.SetInputConnection(dmc.GetOutputPort()) 
-                        smooth.SetNumberOfIterations(smoothing);  
-                        smooth.BoundarySmoothingOff();
-                        smooth.FeatureEdgeSmoothingOff();
-                        smooth.SetFeatureAngle(featureAngle);
-                        smooth.SetPassBand(passBand);
-                        smooth.NonManifoldSmoothingOn();
-                        smooth.NormalizeCoordinatesOn();
-                        smooth.Update();
+                        smooth.SetNumberOfIterations(smoothing) 
+                        smooth.BoundarySmoothingOff()
+                        smooth.FeatureEdgeSmoothingOff()
+                        smooth.SetFeatureAngle(featureAngle)
+                        smooth.SetPassBand(passBand)
+                        smooth.NonManifoldSmoothingOn()
+                        smooth.NormalizeCoordinatesOn()
+                        smooth.Update()
                         mesh=smooth.GetOutput()
                     else:
                         mesh=dmc.GetOutput()
@@ -151,7 +153,7 @@ def vol2surf(
                     ############################plotter################################
                     
                     #to check surf/vol alignment visually, comment out add_volume to just check mesh's shape
-                    if plot_volnext2surf==True:
+                    if plot_volnext2surf:
                         plotter = pv.Plotter()
                         #get size to adapt camera zoom
                         bounds = mesh.bounds
@@ -161,12 +163,14 @@ def vol2surf(
                             (center[0], center[1], center[2] + 3*size),  # camera location
                             center,  (0, -1, 0)] #Y flipped as VTK's coord syst not following RAS
                         #render volume and surface 
-                        actor_mesh = plotter.add_mesh(pv.wrap(mesh), color="red");
-                        actor_vol = plotter.add_volume(pv.wrap(vol.GetOutput()), cmap="Blues"); 
+                        actor_mesh = plotter.add_mesh(pv.wrap(mesh), color="red")
+                        _ = plotter.add_volume(pv.wrap(vol.GetOutput()), cmap="Blues")
                         #slider to allow users to separate them
                         def update_y(value): 
-                            if abs(value) < 1: actor_mesh.SetPosition(0, 0, 0) 
-                            else: actor_mesh.SetPosition(0, -value, 0)
+                            if abs(value) < 1: 
+                                actor_mesh.SetPosition(0, 0, 0) 
+                            else: 
+                                actor_mesh.SetPosition(0, -value, 0)
                         
                         plotter.add_slider_widget(update_y, rng=[-50, 50], title="Y-axis")
                         plotter.show(title=f"{subid} - {base}")
@@ -180,9 +184,12 @@ def vol2surf(
                     writer.SetFileName(out_path)
                     writer.SetInputData(mesh)
                     _ = writer.Write()
-                    if silent==False: print(f"=> Saved {base} to {out_path}")
+                    if not silent: 
+                        print(f"=> Saved {base} to {out_path}")
                 else:
                     out_path = os.path.join(subdir, f"{base.lower()}.vtk")
-                    if silent==False: print(f"=> {base} mesh already in: {out_path}")
+                    if not silent: 
+                        print(f"=> {base} mesh already in: {out_path}")
         else:
-            if silent==False: print(f"=> No volume file (.nii) found at all for {subid}.")
+            if not silent: 
+                print(f"=> No volume file (.nii) found at all for {subid}.")

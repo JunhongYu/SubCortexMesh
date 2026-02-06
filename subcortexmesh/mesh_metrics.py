@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 import os
 import re
-import sys
 from sklearn.decomposition import PCA
 from typing import Optional, Union
 from pathlib import Path
+from subcortexmesh import template_data_fetch
 
 def mesh_metrics(
     inputdir: Union[str, Path],
@@ -92,7 +92,8 @@ def mesh_metrics(
     subindex=0
     for subid in sub_list:
         subindex=subindex+1
-        if silent==False: print(f"Computing surface metrics for {subid}... [{subindex}/{len(sub_list)}]")
+        if not silent: 
+            print(f"Computing surface metrics for {subid}... [{subindex}/{len(sub_list)}]")
         #preparing subdir
         os.makedirs(f"{outputdir}/surface_metrics/", exist_ok=True)
         subdir = f"{outputdir}/surface_metrics/{subid}" 
@@ -110,17 +111,19 @@ def mesh_metrics(
                     if (
                         not os.path.exists(f"{subdir}/{base}_thickness.vtk") 
                         or not os.path.exists(f"{subdir}/{base}_surfarea.vtk") 
-                        or overwrite==True
+                        or overwrite
                     ):
                         ###################################################################################
                         ###############################medial curve building###############################
                         
-                        if silent==False: print(f"=> Computing {base}...")
+                        if not silent: 
+                            print(f"=> Computing {base}...")
                         
                         #This function identifies ends of the mesh, will slice the shape along the Z axis (100 time works well)
                         #and identify the centre of every slice. By tracing through each centre, you get a medial curve in the
                         #core of the shape, linking both ends, which can be used as a reference for thickness.
-                        if silent==False: print("   Generating a medial curve...")
+                        if not silent: 
+                            print("   Generating a medial curve...")
                         
                         def extract_medial_curve(mesh, n_slices=100):
                             
@@ -131,7 +134,8 @@ def mesh_metrics(
                             #sklearn's principal component analysis, helps find the directional axis across the mesh
                             #get vertices that vary the most in the mesh (i.e., the direction across which it extends the most)
                             #this is used to determine the ends of the surface which works well especially for "cylinder/banana" shapes
-                            pca = PCA(n_components=3); pca.fit(points)
+                            pca = PCA(n_components=3)
+                            pca.fit(points)
                             directions = pca.components_[0] #xyz values of the widest identified directional axis (1st component)
                             projected = points @ directions #dot product: quantifies how far/close each vertex is along that directional axis
                             min_val, max_val = projected.min(), projected.max() #ends are the farthest vertices on both sides of that axis
@@ -156,9 +160,12 @@ def mesh_metrics(
                             for position in slice_positions:
                                 plane = vtk.vtkPlane() #makes artificial plane
                                 #use directional axis so vtk knows how is the slice angled
-                                plane.SetOrigin(position); plane.SetNormal(directions) 
+                                plane.SetOrigin(position)
+                                plane.SetNormal(directions) 
                                 cutter = vtk.vtkCutter() #create a slice using the plane
-                                cutter.SetCutFunction(plane); cutter.SetInputData(mesh); cutter.Update()
+                                cutter.SetCutFunction(plane)
+                                cutter.SetInputData(mesh)
+                                cutter.Update()
                                 slice_poly = cutter.GetOutput()
                                 #only get centroid if the slice actually cuts any 3D space (otherwise, 0 vertex)
                                 if slice_poly.GetNumberOfPoints() > 0:
@@ -174,10 +181,12 @@ def mesh_metrics(
                             core = centroids[int(len(centroids) * 0.1):int(len(centroids) * 0.9)] #removes 10% tails of slices
                             #Will extend each end (remaining 10% tails) in a straight line until centroids intersect with mesh
                             box = vtk.vtkOBBTree() #make a "oriented bounding box" that will be used to detect when line reach boundary
-                            box.SetDataSet(mesh); box.BuildLocator()
+                            box.SetDataSet(mesh)
+                            box.BuildLocator()
                             def extender(start_pt, direction): 
                                 #max_dist in case the line gets drawn outside by error, in which case it would extend infinitely
-                                max_dist=50; step=0.5
+                                max_dist=50
+                                step=0.5
                                 for i in range(1, int(max_dist / step)): #iterates every new line segment added
                                     next_pt = start_pt + direction * (i * step)
                                     points = vtk.vtkPoints() #placeholder for coordinate of the intersection
@@ -188,8 +197,8 @@ def mesh_metrics(
                                 return start_pt + direction * max_dist #if it never gets found, will define end as max_dist from start
                               
                             #define the two end directions 
-                            dir_start = -directions; ext_start = extender(core[0], -directions);
-                            dir_end = directions; ext_end = extender(core[-1], directions)
+                            ext_start = extender(core[0], -directions)
+                            ext_end = extender(core[-1], directions)
                             extended_core = [ext_start] + core + [ext_end]
                             
                             #LINE BUILDING
@@ -218,7 +227,7 @@ def mesh_metrics(
                         #compute medial_curve
                         subject_medial_curve = extract_medial_curve(subject_mesh, n_slices=100)
                         
-                        if plot_medial_curve==True:
+                        if plot_medial_curve:
                             #script to plot (transparent) surface and its medical curve crossing through
                             vis_medialcurve(subject_mesh, subject_medial_curve, base, subid)
                             
@@ -229,8 +238,9 @@ def mesh_metrics(
                         #Distance is calculated in native space
                         #will later be "projected" on the template space after measure
                             
-                        if (not os.path.exists(f"{inputdir}/{subid}/{base}_thickness.vtk")) or overwrite==True:
-                            if silent==False: print("   Computing thickness...")
+                        if (not os.path.exists(f"{inputdir}/{subid}/{base}_thickness.vtk")) or overwrite:
+                            if not silent: 
+                                print("   Computing thickness...")
                             getting_thickness=True
                             #line to rendered as a 3D tube for VTK's implicit distance filter to actually work
                             tube_filter = vtk.vtkTubeFilter()
@@ -244,7 +254,8 @@ def mesh_metrics(
                             def compute_thickness_to_medial(mesh, medial_curve_tube):
                                 distance_filter = vtk.vtkImplicitPolyDataDistance()
                                 distance_filter.SetInput(medial_curve_tube) #set reference for distances
-                                thickness = vtk.vtkFloatArray(); thickness.SetName("thickness") #prepare thickness values scalar
+                                thickness = vtk.vtkFloatArray()
+                                thickness.SetName("thickness") #prepare thickness values scalar
                                 for i in range(mesh.GetNumberOfPoints()): #for each vertex
                                     d = distance_filter.EvaluateFunction(mesh.GetPoint(i)) #calculate distance to medial curve
                                     thickness.InsertNextValue(abs(d)) #abs for unsigned thickness
@@ -254,7 +265,8 @@ def mesh_metrics(
                             subject_thickness = compute_thickness_to_medial(subject_mesh, medial_curve_tube)
                             _ = subject_mesh.GetPointData().AddArray(subject_thickness)
                         else:
-                            if silent==False: print(f"  Thickness already computed.")
+                            if not silent: 
+                                print("  Thickness already computed.")
                         
                         
                         ###################################################################################
@@ -267,8 +279,9 @@ def mesh_metrics(
                         #-That is how the ?h.area file is created."
                         #https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/msg29355.html
                         
-                        if (not os.path.exists(f"{inputdir}/{subid}/{base}_surfarea.vtk")) or overwrite==True:
-                            if silent==False: print("   Computing surface area...")
+                        if (not os.path.exists(f"{inputdir}/{subid}/{base}_surfarea.vtk")) or overwrite:
+                            if not silent: 
+                                print("   Computing surface area...")
                             getting_surfarea=True
                             def get_surface_area(subject_mesh):
                                 #read vertex coordinates
@@ -296,7 +309,8 @@ def mesh_metrics(
                                     #triangle area
                                     #http://dk81.github.io/dkmathstats_site/linalg-area-paraellogram.html#examples
                                     #calculate two edges distance (xyz difference) vectors for two faces of the triangle
-                                    e1=v2-v1; e2=v3-v1
+                                    e1=v2-v1
+                                    e2=v3-v1
                                     #cross product of the two returns a perpendicular distance vector (forming a parallelogram)
                                     edgespan=np.cross(e1, e2)
                                     #the norm of this vector is the area spanned by the parallelogram
@@ -316,7 +330,8 @@ def mesh_metrics(
                             #add surface area array to the mesh
                             _ = subject_mesh.GetPointData().AddArray(get_surface_area(subject_mesh))
                         else:
-                            if silent==False: print(f"  Surface area already computed.")
+                            if not silent: 
+                                print("  Surface area already computed.")
                         
                         
                         ###################################################################################
@@ -324,15 +339,17 @@ def mesh_metrics(
                         
                         #If you also want the vertex-wise metrics NOT projected to fsaverage space,
                         #you can save the aligned native space mesh (thickness and surfarea scalars attached)
-                        if native_metrics==True:
-                            if silent==False: print(f"   Saving subject-space mesh to {subid}/native_space/...")
+                        if native_metrics:
+                            if not silent: 
+                                print(f"   Saving subject-space mesh to {subid}/native_space/...")
                             os.makedirs(f"{subdir}/native_space/", exist_ok=True)
                             writer = vtk.vtkPolyDataWriter()
                             writer.SetFileName(f"{subdir}/native_space/{base.lower()}_native.vtk")
                             writer.SetInputData(subject_mesh)
                             _ = writer.Write()
                         
-                        if silent==False: print(f"   Printing descriptive statistics...")
+                        if not silent: 
+                            print("   Printing descriptive statistics...")
                         #print native-space statistics summary either way
                         print_stats(subdir, subject_mesh, base)
                         
@@ -340,7 +357,8 @@ def mesh_metrics(
                         #######################subject-to-template registration############################
                         
                         #We align the two object's medial curves via rigid rotation (to later improve the native-to-fsaverage values projection)
-                        if silent==False: print("   Alignment to fsaverage template...")
+                        if not silent: 
+                            print("   Alignment to fsaverage template...")
                         
                         #prepare the fsaverage template's mesh and curve
                         template_mesh = load_mesh(f"{toolboxdata}/template_data/fsaverage/surfaces/{meshfile}")
@@ -367,8 +385,10 @@ def mesh_metrics(
                             X = np.asarray(X, dtype=np.float64) 
                             Y = np.asarray(Y, dtype=np.float64)
                             #mean centring all coordinate values along the origin to facilitate rotation
-                            mx = X.mean(axis=0); my = Y.mean(axis=0) #means of x,y,z coordinates
-                            Xc = X - mx; Yc = Y - my
+                            mx = X.mean(axis=0)
+                            my = Y.mean(axis=0) #means of x,y,z coordinates
+                            Xc = X - mx
+                            Yc = Y - my
                            
                             #solving the "procrustes problem" with alignment only
                             #basically, it finds an optimal orthogonal matrix with the best rotation of xyz required to align X's points to Y's 
@@ -440,7 +460,8 @@ def mesh_metrics(
                         
                         #We use he Nearest Neighbor method to project native values to template space 
                         #works fairly well as shapes are not too complex and aligned
-                        if silent==False: print("   Projecting subject-space data to template space...")
+                        if not silent:
+                            print("   Projecting subject-space data to template space...")
                         
                         def native_to_template(aligned_subject_mesh, template_mesh, scalarname):
                             #setting locator for subject mesh points
@@ -466,8 +487,10 @@ def mesh_metrics(
                             _ =template_mesh.GetPointData().AddArray(template_scalar_array)
                             
                             #save mesh in template space
-                            if silent==False: print(f"   Saving to {subid}/{base.lower()}_{scalarname.lower()}.vtk")
-                            saved_mesh = vtk.vtkPolyData(); saved_mesh.DeepCopy(template_mesh) 
+                            if not silent: 
+                                print(f"   Saving to {subid}/{base.lower()}_{scalarname.lower()}.vtk")
+                            saved_mesh = vtk.vtkPolyData()
+                            saved_mesh.DeepCopy(template_mesh) 
                             saved_mesh.GetPointData().SetScalars(template_scalar_array)
                             writer = vtk.vtkPolyDataWriter()
                             writer.SetFileName(f"{subdir}/{base.lower()}_{scalarname.lower()}.vtk")
@@ -477,25 +500,27 @@ def mesh_metrics(
                             return template_mesh
                         
                         #project subject's scalars to template space
-                        if getting_thickness==True:
+                        if getting_thickness:
                             subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'thickness')
-                        if getting_surfarea==True:
+                        if getting_surfarea:
                             subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'surfarea')
                         
                         #########################################################################
                         ##############################plot#######################################
                         
-                        if plot_projection==True:
+                        if plot_projection:
                             #to visualise subject and template's thickness surfaces next to each other
-                            if getting_thickness==True:
+                            if getting_thickness:
                                 vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'thickness', base)
-                            if getting_surfarea==True:
+                            if getting_surfarea:
                                 vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'surfarea', base)
                          
                     else:
-                        if silent==False: print(f"=> {base} surface metrics already computed.")
+                        if not silent: 
+                            print(f"=> {base} surface metrics already computed.")
         else:
-            if silent==False: print(f"=> No mesh file (.vtk) found at all for {subid}.")
+            if not silent: 
+                print(f"=> No mesh file (.vtk) found at all for {subid}.")
 
 
 ###################################################################

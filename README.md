@@ -1,48 +1,27 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
+<img src="figures/hexlogo.png" alt="logo" align="right" style="float:right; height:200px;"/>
 
-# SubCortexMesh <img src="figures/hexlogo.png" alt="logo" align="right" style="float:right; height:200px;"/>
+# SubCortexMesh
 
 ## Surface-based postprocessing of segmented subcortices
 
-This toolbox provides commands for automated conversion of FreeSurfer's
-ASeg (automatic subcortical segmentation) subcortical volumes to 3D
-surface meshes. ASeg volumes are outputted by default in FreeSurfer's
-automated preprocessing [recon-all
-pipeline](https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all).
+This toolbox provides commands for automated conversion of FreeSurfer's ASeg (automatic subcortical segmentation) subcortical volumes to 3D surface meshes. ASeg volumes are outputted by default in FreeSurfer's automated preprocessing [recon-all pipeline](https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all).
 
 The following subcortices are converted:\
-Left and right **Cerebellum-Cortex**, left and right **Thalamus**, left
-and right **Caudate**, left and right **Putamen**, left and right
-**Pallidum**, left and right **Hippocampus**, left and right
-**Amygdala**, left and right **Accumbens-area**, left and right
-**Ventral diencephalon**, the **Brain-Stem**.
+Left and right **Cerebellum-Cortex**, left and right **Thalamus**, left and right **Caudate**, left and right **Putamen**, left and right **Pallidum**, left and right **Hippocampus**, left and right **Amygdala**, left and right **Accumbens-area**, left and right **Ventral diencephalon**, the **Brain-Stem**.
 
 For all subjects of a FreeSurfer output directory:
 
--   Rigidly coregisters subject-space ASeg volumes to fsaverage space
-    (MNI305). It solely does rotation and no interpolation to preserve
-    subject-space dimensions.
+-   Rigidly coregisters subject-space ASeg volumes to fsaverage space (MNI305). It solely does rotation and no interpolation to preserve subject-space dimensions.
 
 -   Extracts individual regions-of-interest (ROIs) as separate volumes
 
--   Converts each volume to surface meshes using VTK's Discrete Marching
-    Cube protocol, with additional dilating+eroding and smoothing to
-    minimise artefacts (can be disabled or lowered)
+-   Converts each volume to surface meshes using VTK's Discrete Marching Cube protocol, with additional dilating+eroding and smoothing to minimise artefacts (can be disabled or lowered)
 
--   Measures vertex-wise thickness (radial distance from a generated
-    medial curve) and surface area (1/3 of the area of the triangles a
-    vertex is part of).
+-   Measures vertex-wise thickness (radial distance from a generated medial curve) and surface area (1/3 of the area of the triangles a vertex is part of).
 
--   Saves descriptive statistics for each ROI in a table for each
-    subject.
+-   Saves descriptive statistics for each ROI in a table for each subject.
 
--   Aligns subject meshes and projects their vertex-wise values to a
-    standard fsaverage template-based surface (native space meshes can
-    also be saved).
+-   Aligns subject meshes and projects their vertex-wise values to a standard fsaverage template-based surface (native space meshes can also be saved).
 
 ## Installation
 
@@ -52,22 +31,11 @@ SubCortexMesh can be installed via pip from the GitHub directory:
 pip install git+https://github.com/chabld/SubCortexMesh.git
 ```
 
-For the ASeg volume coregistration and extraction, SubCortexMesh
-requires
-[FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferWiki)
-to be installed and accessible to the environment python is started in
-(which means it must be able to run FreeSurfer commands via
-os.system())[^1]. Subsequent computations (conversion of volumes to
-surface meshes, computation of surface-based metrics, and
-standardization) are fully executed in Python, mainly relying on the
-[VTK](https://vtk.org/) *v*9.5.2 module.
+For the ASeg volume coregistration and extraction, SubCortexMesh requires [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferWiki) to be installed and accessible to the environment python is started in (which means it must be able to run FreeSurfer commands via os.system())[^readme-1]. Subsequent computations (conversion of volumes to surface meshes, computation of surface-based metrics, and standardization) are fully executed in Python, mainly relying on the [VTK](https://vtk.org/) *v*9.5.2 module.
 
-[^1]: SubCortexMesh was tested with FreeSurfer version 7.4.1.
+[^readme-1]: SubCortexMesh was tested with FreeSurfer version 7.4.1.
 
-Once imported in python, the toolbox requires base template data to be
-downloaded. The command below is triggered by every function that needs
-the data. It checks for its existence and if it is not found, it will
-assist user so they can download it:
+Once imported in python, the toolbox requires base template data to be downloaded. The command below is triggered by every function that needs the data. It checks for its existence and if it is not found, it will assist user so they can download it:
 
 ``` python
 import subcortexmesh
@@ -78,15 +46,9 @@ toolboxdata=template_data_fetch()
 
 ### Extracting subcortical volumes
 
-The registration and extraction of ASeg volumes is done on FreeSurfer
-output subjects directories (`SUBJECTS_DIR`) and collates all subjects'
-individual ASeg volumes at once. Unless specified otherwise, the ASeg
-(.mgz) volumes are generated by default in the [recon-all
-pipeline](https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all).
+The registration and extraction of ASeg volumes is done on FreeSurfer output subjects directories (`SUBJECTS_DIR`) and collates all subjects' individual ASeg volumes at once. Unless specified otherwise, the ASeg (.mgz) volumes are generated by default in the [recon-all pipeline](https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all).
 
-This is the command that can be done to extract volumes (the
-*toolboxdata* argument only needs to be specified if it was not
-downloaded to the user's home directory).
+This is the command that can be done to extract volumes (the *toolboxdata* argument only needs to be specified if it was not downloaded to the user's home directory).
 
 ``` python
 aseg_getvol(
@@ -97,13 +59,11 @@ aseg_getvol(
   silent=False)
 ```
 
-*aseg_getvol()* will create a directory called "sub_volumes" inside the
-path given (*outputdir*).
+*aseg_getvol()* will create a directory called "sub_volumes" inside the path given (*outputdir*).
 
 ### Converting volumes to surfaces
 
-The path to sub_volumes can then be given to the following command in
-order to convert the volumes into surfaces:
+The path to sub_volumes can then be given to the following command in order to convert the volumes into surfaces:
 
 ``` python
 vol2surf(
@@ -117,24 +77,15 @@ vol2surf(
     )
 ```
 
-The *plot_volnext2surf()* argument is False by default, but allows user
-to check if they are satisfied with the resulting mesh. Below is an
-example with a left thalamus: A) shows the volume and the surface
-created from the former superimposed, B) the voxel-based volume, C) the
-vertex-wise surface (with VTK' [discrete marching
-cubes](https://vtk.org/doc/nightly/html/classvtkDiscreteMarchingCubes.html)
-method, no smoothing), D) the surface after dilation+erosion and
-smoothing.
+The *plot_volnext2surf()* argument is False by default, but allows user to check if they are satisfied with the resulting mesh. Below is an example with a left thalamus: A) shows the volume and the surface created from the former superimposed, B) the voxel-based volume, C) the vertex-wise surface (with VTK' [discrete marching cubes](https://vtk.org/doc/nightly/html/classvtkDiscreteMarchingCubes.html) method, no smoothing), D) the surface after dilation+erosion and smoothing.
 
 ![](figures/aseg_getvol_vol2surf.png)
 
-Similarly, *vol2surf()* will create a directory called "sub_surfaces"
-inside the given outputdir.
+Similarly, *vol2surf()* will create a directory called "sub_surfaces" inside the given outputdir.
 
 ### Computing surface-based metrics
 
-The path to sub_surfaces can then be given to the following command in
-order to compute mesh-wise metrics:
+The path to sub_surfaces can then be given to the following command in order to compute mesh-wise metrics:
 
 ``` python
 mesh_metrics(
@@ -148,11 +99,7 @@ mesh_metrics(
   silent=False)
 ```
 
-The measure will create a "surface_metrics" directory in the
-*outputdir*. The *native_metrics* argument will save .vtk surface
-meshes, in native space, containing scalars for each metric. By default,
-mesh_metrics() also saves native summary statistics tables in each
-subject directory. E.g., surface_metrics/sub-xxx/surfarea_stats.txt:
+The measure will create a "surface_metrics" directory in the *outputdir*. The *native_metrics* argument will save .vtk surface meshes, in native space, containing scalars for each metric. By default, mesh_metrics() also saves native summary statistics tables in each subject directory. E.g., surface_metrics/sub-xxx/surfarea_stats.txt:
 
 | label                | mean  | sd    | min   | max   | range | n_vert |
 |:---------------------|:------|:------|:------|:------|:------|:-------|
@@ -161,21 +108,13 @@ subject directory. E.g., surface_metrics/sub-xxx/surfarea_stats.txt:
 | left-amygdala        | 0.685 | 0.199 | 0.159 | 1.254 | 1.095 | 1288   |
 | ...                  |       |       |       |       |       |        |
 
-The plotting arguments are also False by default and allow users to
-check the computation process. The medial curve, the line cross through
-the centre of the mesh (A) is fundamental to the thickness measure, as
-it is a measure of radial distance between the curve and the outer
-surface. Likewise, plotting the surface (B) and its template (C)
-equivalent matters to see how accurate the standardisation is.
+The plotting arguments are also False by default and allow users to check the computation process. The medial curve, the line cross through the centre of the mesh (A) is fundamental to the thickness measure, as it is a measure of radial distance between the curve and the outer surface. Likewise, plotting the surface (B) and its template (C) equivalent matters to see how accurate the standardisation is.
 
 ![](figures/medialcurve_standardization.png)
 
 ### Merging all surfaces
 
-It is possible to treat all 19 ROIs as one and merge their vertex-wise
-thickness or surface metrics into one big mesh. This is what the
-following command accomplishes, subject-per-subject (provided all 19
-suncortical meshes have been created):
+It is possible to treat all 19 ROIs as one and merge their vertex-wise thickness or surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all 19 suncortical meshes have been created):
 
 ``` python
 merge_all(
