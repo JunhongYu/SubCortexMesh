@@ -38,7 +38,7 @@ For the ASeg volume coregistration and extraction, SubCortexMesh requires [FreeS
 Once imported in python, the toolbox requires base template data to be downloaded. The command below is triggered by every function that needs the data. It checks for its existence and if it is not found, it will assist user so they can download it:
 
 ``` python
-import subcortexmesh
+from subcortexmesh import template_data_fetch
 toolboxdata=template_data_fetch()
 ```
 
@@ -51,6 +51,7 @@ The registration and extraction of ASeg volumes is done on FreeSurfer output sub
 This is the command that can be done to extract volumes (the *toolboxdata* argument only needs to be specified if it was not downloaded to the user's home directory).
 
 ``` python
+from subcortexmesh import aseg_getvol
 aseg_getvol(
   inputdir="SPRENG_FreeSurfer_subsample/", 
   outputdir="/my_outputdir/",
@@ -66,6 +67,7 @@ aseg_getvol(
 The path to sub_volumes can then be given to the following command in order to convert the volumes into surfaces:
 
 ``` python
+from subcortexmesh import vol2surf
 vol2surf(
     inputdir="/my_outputdir/sub_volumes",
     outputdir="/my_outputdir/",
@@ -88,6 +90,7 @@ Similarly, *vol2surf()* will create a directory called "sub_surfaces" inside the
 The path to sub_surfaces can then be given to the following command in order to compute mesh-wise metrics:
 
 ``` python
+from subcortexmesh import mesh_metrics
 mesh_metrics(
   inputdir="/my_outputdir/sub_surfaces",
   outputdir="/my_outputdir/", 
@@ -117,6 +120,7 @@ The plotting arguments are also False by default and allow users to check the co
 It is possible to treat all 19 ROIs as one and merge their vertex-wise thickness or surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all 19 suncortical meshes have been created):
 
 ``` python
+from subcortexmesh import merge_all
 merge_all(
   inputdir="/my_outputdir/surface_metrics/,
   #toolboxdata="/user_path/subcortexmesh_data",

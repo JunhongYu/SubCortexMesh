@@ -238,7 +238,7 @@ def mesh_metrics(
                         #Distance is calculated in native space
                         #will later be "projected" on the template space after measure
                             
-                        if (not os.path.exists(f"{inputdir}/{subid}/{base}_thickness.vtk")) or overwrite:
+                        if (not os.path.exists(f"{subdir}/{base}_thickness.vtk")) or overwrite:
                             if not silent: 
                                 print("   Computing thickness...")
                             getting_thickness=True
@@ -266,7 +266,9 @@ def mesh_metrics(
                             _ = subject_mesh.GetPointData().AddArray(subject_thickness)
                         else:
                             if not silent: 
-                                print("  Thickness already computed.")
+                                print("   Thickness already computed.")
+                            
+                            getting_thickness=False
                         
                         
                         ###################################################################################
@@ -279,7 +281,7 @@ def mesh_metrics(
                         #-That is how the ?h.area file is created."
                         #https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/msg29355.html
                         
-                        if (not os.path.exists(f"{inputdir}/{subid}/{base}_surfarea.vtk")) or overwrite:
+                        if (not os.path.exists(f"{subdir}/{base}_surfarea.vtk")) or overwrite:
                             if not silent: 
                                 print("   Computing surface area...")
                             getting_surfarea=True
@@ -331,8 +333,9 @@ def mesh_metrics(
                             _ = subject_mesh.GetPointData().AddArray(get_surface_area(subject_mesh))
                         else:
                             if not silent: 
-                                print("  Surface area already computed.")
-                        
+                                print("   Surface area already computed.")
+
+                            getting_surfarea=False
                         
                         ###################################################################################
                         #########################native-space metrics######################################
