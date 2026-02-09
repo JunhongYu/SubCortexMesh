@@ -97,12 +97,12 @@ mesh_metrics(
   #toolboxdata="/user_path/subcortexmesh_data",
   plot_medial_curve=True, 
   plot_projection=True, 
-  native_metrics=True, 
+  native_meshes=True, 
   overwrite=True, 
   silent=False)
 ```
 
-The measure will create a "surface_metrics" directory in the *outputdir*. The *native_metrics* argument will save .vtk surface meshes, in native space, containing scalars for each metric. By default, mesh_metrics() also saves native summary statistics tables in each subject directory. E.g., surface_metrics/sub-xxx/surfarea_stats.txt:
+The measure will create a "surface_metrics" directory in the *outputdir*. The *native_meshes* argument will save .vtk surface meshes, in native space, containing scalars for each metric. By default, mesh_metrics() also saves native summary statistics tables in each subject directory. E.g., surface_metrics/sub-xxx/surfarea_stats.txt:
 
 | label                | mean  | sd    | min   | max   | range | n_vert |
 |:---------------------|:------|:------|:------|:------|:------|:-------|

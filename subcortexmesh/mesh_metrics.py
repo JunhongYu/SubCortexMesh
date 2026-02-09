@@ -18,7 +18,7 @@ def mesh_metrics(
     toolboxdata: Optional[Union[str, Path]] = None,
     plot_medial_curve=False,
     plot_projection=False,
-    native_metrics=False,
+    native_meshes=False,
     overwrite=True,
     silent=False,
     ):
@@ -33,7 +33,7 @@ def mesh_metrics(
     (i.e., the radial distance between the surface and the center of the mesh)
     - Surface area is measured as the sum of the area of all triangles a given
     vertex belongs to, divided by 3 
-    - Optional (native_metrics, disabled by default): meshes with their thickness and
+    - Optional (native_meshes, disabled by default): meshes with their thickness and
     surface area scalar values can be saved in native subject space, before projection.
     - Thickness and surface values, separately, are "projected" on an empty template
     mesh via a nearest neighbour approach (i.e., each vertex in the template mesh is
@@ -61,7 +61,7 @@ def mesh_metrics(
     plot_projection: bool
         Whether to plot the subject-space mesh next to its template-space mesh. 
         Default is False.
-    native_metrics: bool, optional
+    native_meshes: bool, optional
         Whether to save the meshes computed in subject space before they are projected 
         to template space (they will contain one scalar for each metric). Default is 
         False. overwrite must be True for this process to be accounted for.
@@ -284,6 +284,7 @@ def mesh_metrics(
                         if (not os.path.exists(f"{subdir}/{base}_surfarea.vtk")) or overwrite:
                             if not silent: 
                                 print("   Computing surface area...")
+                                
                             getting_surfarea=True
                             def get_surface_area(subject_mesh):
                                 #read vertex coordinates
@@ -334,7 +335,7 @@ def mesh_metrics(
                         else:
                             if not silent: 
                                 print("   Surface area already computed.")
-
+                            
                             getting_surfarea=False
                         
                         ###################################################################################
@@ -342,7 +343,7 @@ def mesh_metrics(
                         
                         #If you also want the vertex-wise metrics NOT projected to fsaverage space,
                         #you can save the aligned native space mesh (thickness and surfarea scalars attached)
-                        if native_metrics:
+                        if native_meshes:
                             if not silent: 
                                 print(f"   Saving subject-space mesh to {subid}/native_space/...")
                             os.makedirs(f"{subdir}/native_space/", exist_ok=True)
@@ -492,6 +493,7 @@ def mesh_metrics(
                             #save mesh in template space
                             if not silent: 
                                 print(f"   Saving to {subid}/{base.lower()}_{scalarname.lower()}.vtk")
+                            
                             saved_mesh = vtk.vtkPolyData()
                             saved_mesh.DeepCopy(template_mesh) 
                             saved_mesh.GetPointData().SetScalars(template_scalar_array)
@@ -521,6 +523,7 @@ def mesh_metrics(
                     else:
                         if not silent: 
                             print(f"=> {base} surface metrics already computed.")
+                        
         else:
             if not silent: 
                 print(f"=> No mesh file (.vtk) found at all for {subid}.")
@@ -531,6 +534,7 @@ def mesh_metrics(
 #function to write down summary statistics in a .txt
 
 def print_stats(subdir, mesh, base):
+    os.makedirs(f"{subdir}/stats", exist_ok=True)
     #one table for each metric separately
     for scalarname in ['thickness', 'surfarea']:
         if mesh.GetPointData().HasArray(scalarname):
@@ -543,7 +547,7 @@ def print_stats(subdir, mesh, base):
             columns = ["mean", "sd", "min", "max", "range", "n_vert"]
             
             #load or initialize table
-            outfile = f"{subdir}/{scalarname}_stats.txt"
+            outfile = f"{subdir}/stats/{scalarname}_stats.txt"
             if os.path.exists(outfile):
                 df = pd.read_csv(outfile, sep="\t", index_col="label")
             else:
