@@ -17,7 +17,7 @@ For all subjects of a FreeSurfer output directory:
 
 -   Converts each volume to surface meshes using VTK's Discrete Marching Cube protocol, with additional dilating+eroding and smoothing to minimise artefacts (can be disabled or lowered)
 
--   Measures vertex-wise thickness (radial distance from a generated medial curve) and surface area (1/3 of the area of the triangles a vertex is part of).
+-   Measures vertex-wise thickness (radial distance from a generated medial curve),  surface area (1/3 of the area of the triangles a vertex is part of) and curvature (mean curvature).
 
 -   Saves descriptive statistics for each ROI in a table for each subject.
 
@@ -97,6 +97,7 @@ mesh_metrics(
   #toolboxdata="/user_path/subcortexmesh_data",
   plot_medial_curve=True, 
   plot_projection=True, 
+  smooth=[0,0,5],
   native_meshes=True, 
   overwrite=True, 
   silent=False)
@@ -111,13 +112,13 @@ The measure will create a "surface_metrics" directory in the *outputdir*. The *n
 | left-amygdala        | 0.685 | 0.199 | 0.159 | 1.254 | 1.095 | 1288   |
 | ...                  |       |       |       |       |       |        |
 
-The plotting arguments are also False by default and allow users to check the computation process. The medial curve, the line cross through the centre of the mesh (A) is fundamental to the thickness measure, as it is a measure of radial distance between the curve and the outer surface. Likewise, plotting the surface (B) and its template (C) equivalent matters to see how accurate the standardisation is.
+The plotting arguments are also False by default and allow users to check the computation process. The medial curve, the line cross through the centre of the mesh (A) is fundamental to the thickness measure, as it is a measure of radial distance between the curve and the outer surface. It is also used to align the subject-space and native-space mesh further. Likewise, plotting the surface (B) and its template (C) equivalent matters to see how accurate the standardisation is.
 
 ![](figures/medialcurve_standardization.png)
 
 ### Merging all surfaces
 
-It is possible to treat all 19 ROIs as one and merge their vertex-wise thickness or surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all 19 suncortical meshes have been created):
+It is possible to treat all 19 ROIs as one and merge their vertex-wise surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all 19 suncortical meshes have been created):
 
 ``` python
 from subcortexmesh import merge_all

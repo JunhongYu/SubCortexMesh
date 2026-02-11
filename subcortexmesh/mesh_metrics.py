@@ -3,12 +3,15 @@
 
 import vtk
 from vtk.util import numpy_support
+from vtkmodules.vtkFiltersGeneral import vtkCurvatures
+from vtkmodules.vtkRenderingCore import vtkTextActor
 import numpy as np
 import pandas as pd
+import pyvista as pv
 import os
 import re
 from sklearn.decomposition import PCA
-from typing import Optional, Union
+from typing import Optional, Union, List
 from pathlib import Path
 from subcortexmesh import template_data_fetch
 
@@ -16,6 +19,7 @@ def mesh_metrics(
     inputdir: Union[str, Path],
     outputdir: Union[str, Path],
     toolboxdata: Optional[Union[str, Path]] = None,
+    smooth: List[int] = [0, 5, 5],
     plot_medial_curve=False,
     plot_projection=False,
     native_meshes=False,
@@ -32,10 +36,14 @@ def mesh_metrics(
     - Thickness is measured as each surface vertex's distance from the curve 
     (i.e., the radial distance between the surface and the center of the mesh)
     - Surface area is measured as the sum of the area of all triangles a given
-    vertex belongs to, divided by 3 
+    vertex belongs to, divided by 3. By default, a Gaussian (FWHM=5) smoothing is 
+    applied. 
+    - Curvature is the mean curvature from vtkCurvatures, which indicates how bent
+    is the surface at a each vertex, with higher mean curvature meaning more concave 
+    surface and lower convex. By default, a Gaussian (FWHM=5) smoothing is applied. 
     - Optional (native_meshes, disabled by default): meshes with their thickness and
     surface area scalar values can be saved in native subject space, before projection.
-    - Thickness and surface values, separately, are "projected" on an empty template
+    - Metric values, separately, are "projected" on an empty template
     mesh via a nearest neighbour approach (i.e., each vertex in the template mesh is
     assigned the thickness/surface value of the closest vertex in the subject mesh)
     - Meshes with their thickness and surface area scalar values can be saved in 
@@ -56,6 +64,10 @@ def mesh_metrics(
         The path of the "subcortexmesh_data" package data directory. The  default path 
         is assumed to be the user's home directory (pathlib's Path.home()). Users will 
         be prompted to download it if not found.
+    smooth : list
+        The full-maximum half-width (FMHW) values that will be applied for smoothing 
+        each surface-based measure along the surface. In the following order: 
+        thickness, surface area, curvature. 0 means no smoothing is applied.
     plot_medial_curve: bool
         Whether to plot the mesh and its computed medial curve. Default is False.
     plot_projection: bool
@@ -80,7 +92,7 @@ def mesh_metrics(
         if os.path.isdir(os.path.join(inputdir, d))]
     
     #to silence prints
-    vtk.vtkObject.GlobalWarningDisplayOff()
+    #vtk.vtkObject.GlobalWarningDisplayOff()
     
     #mesh loader function
     def load_mesh(path):
@@ -110,7 +122,8 @@ def mesh_metrics(
                     
                     if (
                         not os.path.exists(f"{subdir}/{base}_thickness.vtk") 
-                        or not os.path.exists(f"{subdir}/{base}_surfarea.vtk") 
+                        or not os.path.exists(f"{subdir}/{base}_surfarea.vtk")
+                        or not os.path.exists(f"{subdir}/{base}_curvature.vtk")  
                         or overwrite
                     ):
                         ###################################################################################
@@ -126,7 +139,6 @@ def mesh_metrics(
                             print("   Generating a medial curve...")
                         
                         def extract_medial_curve(mesh, n_slices=100):
-                            
                             #make array of vertices 3D coordinates
                             points = np.array([mesh.GetPoint(i) for i in range(mesh.GetNumberOfPoints())])
                             
@@ -224,6 +236,7 @@ def mesh_metrics(
                         
                         #load mesh of interest
                         subject_mesh = load_mesh(f"{inputdir}/{subid}/{meshfile}")
+                        
                         #compute medial_curve
                         subject_medial_curve = extract_medial_curve(subject_mesh, n_slices=100)
                         
@@ -237,7 +250,7 @@ def mesh_metrics(
                         #Thickness is basically radial distance from the medial curve
                         #Distance is calculated in native space
                         #will later be "projected" on the template space after measure
-                            
+                        
                         if (not os.path.exists(f"{subdir}/{base}_thickness.vtk")) or overwrite:
                             if not silent: 
                                 print("   Computing thickness...")
@@ -254,16 +267,23 @@ def mesh_metrics(
                             def compute_thickness_to_medial(mesh, medial_curve_tube):
                                 distance_filter = vtk.vtkImplicitPolyDataDistance()
                                 distance_filter.SetInput(medial_curve_tube) #set reference for distances
-                                thickness = vtk.vtkFloatArray()
-                                thickness.SetName("thickness") #prepare thickness values scalar
+                                
+                                #prepare vertex-wise surfarea array
+                                vertexwise_thickness_np = np.zeros(mesh.GetNumberOfPoints())
+                                
                                 for i in range(mesh.GetNumberOfPoints()): #for each vertex
                                     d = distance_filter.EvaluateFunction(mesh.GetPoint(i)) #calculate distance to medial curve
-                                    thickness.InsertNextValue(abs(d)) #abs for unsigned thickness
-                                return thickness
+                                    vertexwise_thickness_np[i] = abs(d)
+                                return vertexwise_thickness_np
+                            
+                            vertexwise_thickness_np = compute_thickness_to_medial(subject_mesh, medial_curve_tube)
+                            vertexwise_thickness_np = scalar_smooth(subject_mesh, vertexwise_thickness_np, smooth[0])
                             
                             #add thickness values to subject mesh
-                            subject_thickness = compute_thickness_to_medial(subject_mesh, medial_curve_tube)
-                            _ = subject_mesh.GetPointData().AddArray(subject_thickness)
+                            vertexwise_thickness_vtk = numpy_support.numpy_to_vtk(vertexwise_thickness_np, deep=True, array_type=vtk.VTK_FLOAT) 
+                            vertexwise_thickness_vtk.SetName("thickness")
+                            _ = subject_mesh.GetPointData().AddArray(vertexwise_thickness_vtk)
+                            
                         else:
                             if not silent: 
                                 print("   Thickness already computed.")
@@ -289,14 +309,14 @@ def mesh_metrics(
                             def get_surface_area(subject_mesh):
                                 #read vertex coordinates
                                 points = subject_mesh.GetPoints()
-                                n_points = points.GetNumberOfPoints()
+                                
                                 #read triangles
                                 cells = subject_mesh.GetPolys()
                                 cells.InitTraversal()
                                 id_list = vtk.vtkIdList()
                                 
                                 #prepare vertex-wise surfarea array
-                                vertexwise_area = np.zeros(n_points)
+                                vertexwise_area_np = np.zeros(subject_mesh.GetNumberOfPoints())
                                 
                                 #for each triangle 
                                 while cells.GetNextCell(id_list):
@@ -322,10 +342,11 @@ def mesh_metrics(
                                     
                                     #Each connected vertex get added 1/3 of that area
                                     for i in range(3):
-                                        vertexwise_area[id_list.GetId(i)] += area / 3.0
+                                        vertexwise_area_np[id_list.GetId(i)] += area / 3.0
                                     
                                 #convert to vtkFloatArray
-                                vertexwise_area_vtk = numpy_support.numpy_to_vtk(num_array=vertexwise_area, deep=True, array_type=vtk.VTK_FLOAT)
+                                vertexwise_area_np = scalar_smooth(subject_mesh, vertexwise_area_np, smooth[1])
+                                vertexwise_area_vtk = numpy_support.numpy_to_vtk(num_array=vertexwise_area_np, deep=True, array_type=vtk.VTK_FLOAT)
                                 vertexwise_area_vtk.SetName("surfarea")
                                     
                                 return vertexwise_area_vtk
@@ -337,6 +358,45 @@ def mesh_metrics(
                                 print("   Surface area already computed.")
                             
                             getting_surfarea=False
+                        
+                        ###################################################################################
+                        ###############################curvature################################
+                        
+                        #Following VTK's mean curvature, with additional gaussian smoothing. 
+                        #https://vtk.org/doc/nightly/html/classvtkCurvatures.html#details
+                        #Inverted to mimick FreeSurfer's norm for the mean curvature (-curvature = concave,                 +curvature=convex) (cf. DOI: 10.1002/hbm.25776 figure 10)
+                        
+                        if (not os.path.exists(f"{subdir}/{base}_curvature.vtk")) or overwrite:
+                            if not silent: 
+                                print("   Computing curvature...")
+                            
+                            getting_curv=True
+                            
+                            #get numpy array with vertex-wise mean curvature
+                            def get_curv(mesh):
+                                curv=vtkCurvatures()
+                                curv.SetInputData(mesh)
+                                curv.SetCurvatureTypeToMean() 
+                                curv.InvertMeanCurvatureOn()  
+                                curv.Update()
+                                vertexwise_curv = curv.GetOutput().GetPointData().GetArray("Mean_Curvature") 
+                                vtk_curv_np = numpy_support.vtk_to_numpy(vertexwise_curv)
+                                return vtk_curv_np 
+                            
+                            vertexwise_curv_np = get_curv(subject_mesh)
+                            vertexwise_curv_np = scalar_smooth(subject_mesh, vertexwise_curv_np, smooth[2])
+                            #convert to vtkFloatArray
+                            vertexwise_curv_vtk = numpy_support.numpy_to_vtk(num_array=vertexwise_curv_np, deep=True, array_type=vtk.VTK_FLOAT)
+                            vertexwise_curv_vtk.SetName("curvature")
+                            
+                            #add curvature array to the mesh
+                            _ = subject_mesh.GetPointData().AddArray(vertexwise_curv_vtk)
+                        
+                        else:
+                            if not silent: 
+                                print("   Curvature already computed.")
+                            
+                            getting_curv=False
                         
                         ###################################################################################
                         #########################native-space metrics######################################
@@ -370,8 +430,8 @@ def mesh_metrics(
                         
                         #function to get vertices to np coordinate arrays (N rows * 3 (xyz) columns)
                         def pts_to_array(polydata):
-                            pts = polydata.GetPoints()
-                            return np.array([pts.GetPoint(i) for i in range(pts.GetNumberOfPoints())], dtype=np.float64)
+                            points = polydata.GetPoints()
+                            return np.array([points.GetPoint(i) for i in range(points.GetNumberOfPoints())], dtype=np.float64)
                         
                         #reduce curve points to equal count
                         #function to reduce number of points in the curve for stability/speed (a maximum of 200 works well)
@@ -431,7 +491,7 @@ def mesh_metrics(
                             V = pts_to_array(subj_aligned)
                             V_aligned = (R @ V.T).T + t #applies optimal rotation R, and shift t to its coordinates
                             
-                            #convert array back to VTK polydata points (different from arrays)
+                            #convert array back to VTK polydata points
                             vtk_pts = vtk.vtkPoints()
                             vtk_pts.SetNumberOfPoints(len(V_aligned))
                             for i, p in enumerate(V_aligned):
@@ -509,6 +569,8 @@ def mesh_metrics(
                             subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'thickness')
                         if getting_surfarea:
                             subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'surfarea')
+                        if getting_curv:
+                            subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'curvature')
                         
                         #########################################################################
                         ##############################plot#######################################
@@ -519,6 +581,8 @@ def mesh_metrics(
                                 vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'thickness', base)
                             if getting_surfarea:
                                 vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'surfarea', base)
+                            if getting_curv:
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'curvature', base)
                          
                     else:
                         if not silent: 
@@ -528,6 +592,41 @@ def mesh_metrics(
             if not silent: 
                 print(f"=> No mesh file (.vtk) found at all for {subid}.")
 
+###################################################################
+###################################################################
+#scalar smoother (applies to native metrics)
+
+def scalar_smooth(mesh, scalararray, FWHM) :
+    
+    if FWHM > 0:
+        #get triangles' edges and make an edge list
+        faces = np.array(pv.wrap(mesh).faces.reshape((-1, 4))[:, 1:4]) #triangles Nx3
+        #build edges from triangles
+        edges = np.vstack([faces[:, [0, 1]],faces[:, [1, 2]],faces[:, [2, 0]]])
+        edges = edges + 1 #1-based in brainstat's smoother
+        edges = np.sort(edges, axis=1) #normalize order
+        edges=np.int64(edges)
+        
+        #adapted from BrainStat's mesh_smooth
+        #https://brainstat.readthedocs.io/en/master/_modules/brainstat/mesh/data.html#mesh_smooth
+        #© Copyright 2021, MICA Lab, CNG Lab Revision 1f3068fb.
+        v = len(scalararray) 
+        niter = int(np.ceil(FWHM**2 / (2 * np.log(2))))
+        agg_1 = np.bincount(edges[:, 0], minlength=(v + 1)) * 2
+        agg_2 = np.bincount(edges[:, 1], minlength=(v + 1)) * 2
+        Y1 = (agg_1 + agg_2)[1:]
+        
+        Ys = scalararray.copy()
+        for _ in range(niter):
+            Y = Ys[edges[:, 0]-1] + Ys[edges[:, 1]-1]
+            agg_tmp1 = np.bincount(edges[:, 0], Y, (v + 1))[1:]
+            agg_tmp2 = np.bincount(edges[:, 1], Y, (v + 1))[1:]
+            with np.errstate(invalid="ignore"):
+                Ys = (agg_tmp1 + agg_tmp2) / Y1
+    else:
+        Ys = scalararray.copy()
+    
+    return Ys
 
 ###################################################################
 ###################################################################
@@ -536,7 +635,7 @@ def mesh_metrics(
 def print_stats(subdir, mesh, base):
     os.makedirs(f"{subdir}/stats", exist_ok=True)
     #one table for each metric separately
-    for scalarname in ['thickness', 'surfarea']:
+    for scalarname in ['thickness', 'surfarea', 'curvature']:
         if mesh.GetPointData().HasArray(scalarname):
             #predefined row and column names 
             labels = ["left-accumbens-area", "right-accumbens-area", "left-amygdala", "right-amygdala",
@@ -614,116 +713,66 @@ def vis_medialcurve(mesh, medial_curve, base, subid):
 #if the projection from native space to template space was successful
 
 def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarname, base):
-        #use scalar defined
-        aligned_subject_mesh.GetPointData().SetActiveScalars(scalarname)
-        subject_mesh_fsaverage.GetPointData().SetActiveScalars(scalarname)
-        
-        #position shift so meshes are plotted side-by-side
-        def mesh_shifter(mesh, z_offset):
-            transform = vtk.vtkTransform()
-            transform.Translate(0, z_offset, 0)
-            transform_filter = vtk.vtkTransformPolyDataFilter()
-            transform_filter.SetInputData(mesh)
-            transform_filter.SetTransform(transform)
-            transform_filter.Update()
-            return transform_filter.GetOutput()
-        
-        #distance between the two meshes - more space needed for cerebellum and brainstem
-        if subject_mesh_fsaverage.GetNumberOfPoints() > 8000:
-            subject_surf = mesh_shifter(aligned_subject_mesh, -60)
-        else:
-            subject_surf = mesh_shifter(aligned_subject_mesh, -30)
-        
-        fsaverage_surf = mesh_shifter(subject_mesh_fsaverage, 0)
-        
-        #mappers (will assign vertex-wise values if exist)
-        def make_mapper(mesh, use_scalars=True):
-            mapper = vtk.vtkPolyDataMapper()
-            mapper.SetInputData(mesh)
-            mapper.SetScalarVisibility(use_scalars)
-            
-            scalars = mesh.GetPointData().GetScalars()
-            if scalars:
-                mapper.SetScalarRange(scalars.GetRange())
-            
-            return mapper
-        
-        subject_mapper = make_mapper(subject_surf, use_scalars=True)
-        fsaverage_mapper = make_mapper(fsaverage_surf, use_scalars=True)
-        
-        #actors
-        def make_actor(mapper):
-            actor = vtk.vtkActor()
-            actor.SetMapper(mapper)
-            actor.GetProperty().SetColor(*(1, 0, 0)) #default color is all red if scalars missing
-            return actor
-        
-        subject_actor = make_actor(subject_mapper)  
-        fsaverage_actor = make_actor(fsaverage_mapper)   
-        
-        #add label when hovering with cursor
-        def add_hover_label(interactor, renderer, actor, label_text):
-            # Create a text actor (initially hidden)
-            text_actor = vtk.vtkTextActor()
-            text_actor.SetInput(label_text)
-            text_actor.GetTextProperty().SetColor(0, 0, 0)
-            text_actor.GetTextProperty().SetFontSize(18)
-            text_actor.SetVisibility(False)
-            renderer.AddViewProp(text_actor)
-            picker = vtk.vtkCellPicker() #Detects hovering
-            picker.SetTolerance(0.0005)
-            
-            def mouse_move_callback(obj, event):
-                x, y = interactor.GetEventPosition()
-                picker.Pick(x, y, 0, renderer)
-                picked_actor = picker.GetActor()
-                if picked_actor == actor:
-                    # Show label near cursor
-                    text_actor.SetPosition(x + 10, y + 10)
-                    text_actor.SetVisibility(True)
-                else:
-                    text_actor.SetVisibility(False)
-                
-                interactor.Render()
-            
-            interactor.AddObserver("MouseMoveEvent", mouse_move_callback)
-        
-        #renderer setup
-        renderer = vtk.vtkRenderer()
-        renderer.AddActor(subject_actor)
-        renderer.AddActor(fsaverage_actor)
-        renderer.SetBackground(1, 1, 1)
-        #window
-        render_window = vtk.vtkRenderWindow()
-        render_window.AddRenderer(renderer)
-        render_window.SetSize(1200, 800)
-        #flip Y axis of camera as VTK coord syst not following RAS
-        renderer.ResetCamera()
-        camera = renderer.GetActiveCamera()
-        camera.SetViewUp(0, -1, 0)
-        renderer.ResetCameraClippingRange()
-        #interactor to allow rotation
-        interactor = vtk.vtkRenderWindowInteractor()
-        interactor.SetRenderWindow(render_window)
-        interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
-        
-        add_hover_label(interactor, renderer, fsaverage_actor, "FsAverage")
-        add_hover_label(interactor, renderer, subject_actor, "Subject")
-        
-        #start window
-        render_window.Render()
-        render_window.SetWindowName(f"{base} {scalarname}")
-        
-        #add color bar for the scalars
-        scalar_bar = vtk.vtkScalarBarActor()
-        scalar_bar.SetLookupTable(subject_mapper.GetLookupTable())
-        scalar_bar.SetNumberOfLabels(5)
-        scalar_bar.SetTitle(aligned_subject_mesh.GetPointData().GetScalars().GetName())
-        scalar_bar.GetLabelTextProperty().SetColor(0, 0, 0)
-        scalar_bar.GetTitleTextProperty().SetColor(0, 0, 0)
-        renderer.AddViewProp(scalar_bar)
-        
-        interactor.Initialize()
-        interactor.Start()
+    subj = pv.wrap(aligned_subject_mesh).copy() 
+    fsavg = pv.wrap(subject_mesh_fsaverage).copy()
+    subj.set_active_scalars(scalarname)
+    fsavg.set_active_scalars(scalarname)
     
-
+    #distance the two relatively to their own surface boundaries
+    subj_size_x = subj.bounds[1] - subj.bounds[0]
+    fsavg_size_x = fsavg.bounds[1] - fsavg.bounds[0]
+    spacing = max(subj_size_x, fsavg_size_x) * 0.6  #distancing relative to mesh width
+    subj.points = subj.points + np.array([-spacing, 0, 0])
+    fsavg.points = fsavg.points + np.array([spacing, 0, 0])
+    #flip Y to match RAS conventions
+    subj.points = subj.points @ np.diag([1,-1,1]) 
+    fsavg.points = fsavg.points @ np.diag([1,-1,1])
+    
+    p = pv.Plotter(window_size=(1200,600))
+    p.set_background("white")
+    p.add_mesh(subj, scalars=scalarname, cmap="jet_r", nan_color="red")
+    p.add_mesh(fsavg, scalars=scalarname, cmap="jet_r", nan_color="red")
+    
+    p.add_scalar_bar(title=scalarname, color="black", vertical=True, position_x=0.8, position_y=0.9, width=0.05, height=0.8)
+    pv.global_theme.colorbar_orientation = 'vertical'
+    pv.global_theme.colorbar_horizontal.position_y = 0.9
+    
+    #camera settings
+    p.camera.focal_point = subj.center #adapt focal point to the mesh's centre
+    p.camera.position = (subj.center[0], subj.center[1], subj.center[2]+200) #face opposite of Z
+    p.camera.up = (0, 1, 0)   # force Y axis up
+    p.add_axes(interactive=True)
+    
+    #hovering function to view which mesh is which
+    #create text actor that will show next to cursor
+    label_actor = vtkTextActor() 
+    label_actor.GetTextProperty().SetColor(0,0,0) 
+    label_actor.GetTextProperty().SetFontSize(18) 
+    label_actor.GetPositionCoordinate().SetCoordinateSystemToDisplay()
+    label_actor.SetVisibility(False) 
+    p.renderer.AddActor(label_actor)
+    #"picker" to track cell the cursor is hovering
+    picker = pv._vtk.vtkCellPicker()
+    picker.SetTolerance(0.0005)
+    def mouse_track(obj, event):
+        x,y = obj.GetEventPosition()
+        picker.Pick(x,y,0,p.renderer)
+        picked_actor = picker.GetActor()
+        if picked_actor:
+            if picked_actor.GetMapper().GetInput()==subj:
+                label_actor.SetInput("Subject")
+                label_actor.SetPosition(x+10,y+10)
+                label_actor.SetVisibility(True)
+            elif picked_actor.GetMapper().GetInput()==fsavg:
+                label_actor.SetInput("FsAverage")
+                label_actor.SetPosition(x+10,y+10)
+                label_actor.SetVisibility(True)
+            else:
+                label_actor.SetVisibility(False)
+        else:
+            label_actor.SetVisibility(False)
+        p.render()
+        
+    p.iren.add_observer("MouseMoveEvent", mouse_track)
+    
+    p.show(title=f"{base} {scalarname}")

@@ -133,11 +133,11 @@ def merge_all(
         if not silent: 
             print(f"Creating all-aseg surfaces for {subid}...")
         
-        for metric in ['thickness', 'surfarea']:
+        for metric in ['thickness', 'surfarea', 'curvature']:
             
             if not os.path.exists(f"{inputdir}/{subid}/allaseg_{metric}.vtk") or overwrite:
                 if not silent: 
-                    print(f"=> {metric}")
+                    print(f"=> Merging {metric} ...")
                 
                 #listing files for that metric
                 mesh_list = [
