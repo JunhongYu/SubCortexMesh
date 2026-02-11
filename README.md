@@ -17,11 +17,13 @@ For all subjects of a FreeSurfer output directory:
 
 -   Converts each volume to surface meshes using VTK's Discrete Marching Cube protocol, with additional dilating+eroding and smoothing to minimise artefacts (can be disabled or lowered)
 
--   Measures vertex-wise thickness (radial distance from a generated medial curve),  surface area (1/3 of the area of the triangles a vertex is part of) and curvature (mean curvature).
+-   Measures vertex-wise thickness (radial distance from a generated medial curve), surface area (1/3 of the area of the triangles a vertex is part of) and curvature (mean curvature).
 
 -   Saves descriptive statistics for each ROI in a table for each subject.
 
--   Aligns subject meshes and projects their vertex-wise values to a standard fsaverage template-based surface (native space meshes can also be saved).
+-   Aligns subject meshes and projects their vertex-wise values to a standard fsaverage template-based surface[^readme-1] (native space meshes can also be saved).
+
+[^readme-1]: The fsaverage surface-based templates for each ROI have been produced by using the toolbox's main functions (aseg_getvol(), vol2surf()) with default parameters, on the fsaverage template's own aseg.mgz in FreeSurfer 7.4.1 (\$FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz).
 
 ## Installation
 
@@ -31,9 +33,9 @@ SubCortexMesh can be installed via pip from the GitHub directory:
 pip install git+https://github.com/chabld/SubCortexMesh.git
 ```
 
-For the ASeg volume coregistration and extraction, SubCortexMesh requires [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferWiki) to be installed and accessible to the environment python is started in (which means it must be able to run FreeSurfer commands via os.system())[^readme-1]. Subsequent computations (conversion of volumes to surface meshes, computation of surface-based metrics, and standardization) are fully executed in Python, mainly relying on the [VTK](https://vtk.org/) *v*9.5.2 module.
+For the ASeg volume coregistration and extraction, SubCortexMesh requires [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferWiki) to be installed and accessible to the environment python is started in (which means it must be able to run FreeSurfer commands via os.system())[^readme-2]. Subsequent computations (conversion of volumes to surface meshes, computation of surface-based metrics, and standardization) are fully executed in Python, mainly relying on the [VTK](https://vtk.org/) *v*9.5.2 module.
 
-[^readme-1]: SubCortexMesh was tested with FreeSurfer version 7.4.1.
+[^readme-2]: SubCortexMesh was tested with FreeSurfer version 7.4.1.
 
 Once imported in python, the toolbox requires base template data to be downloaded. The command below is triggered by every function that needs the data. It checks for its existence and if it is not found, it will assist user so they can download it:
 
