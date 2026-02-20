@@ -364,7 +364,7 @@ def mesh_metrics(
                         
                         #Following VTK's mean curvature, with additional gaussian smoothing. 
                         #https://vtk.org/doc/nightly/html/classvtkCurvatures.html#details
-                        #Inverted to mimick FreeSurfer's norm for the mean curvature (-curvature = concave,                 +curvature=convex) (cf. DOI: 10.1002/hbm.25776 figure 10)
+                        #Inverted to mimick FreeSurfer's norm for the mean curvature (-curvature = convex,                 +curvature=concave) (cf. DOI: 10.1002/hbm.25776 figure 10)
                         
                         if (not os.path.exists(f"{subdir}/{base}_curvature.vtk")) or overwrite:
                             if not silent: 
@@ -594,7 +594,7 @@ def mesh_metrics(
 
 ###################################################################
 ###################################################################
-#scalar smoother (applies to native metrics)
+#scalar smoother (applies to metrics values on native-space meshes)
 
 def scalar_smooth(mesh, scalararray, FWHM) :
     

@@ -9,7 +9,7 @@ This toolbox provides commands for automated conversion of FreeSurfer's ASeg (au
 The following subcortices are converted:\
 Left and right **Cerebellum-Cortex**, left and right **Thalamus**, left and right **Caudate**, left and right **Putamen**, left and right **Pallidum**, left and right **Hippocampus**, left and right **Amygdala**, left and right **Accumbens-area**, left and right **Ventral diencephalon**, the **Brain-Stem**.
 
-For all subjects of a FreeSurfer output directory:
+For all subjects of a FreeSurfer output directory, SubCortexMesh's pipeline:
 
 -   Rigidly coregisters subject-space ASeg volumes to fsaverage space (MNI305). It solely does rotation and no interpolation to preserve subject-space dimensions.
 
@@ -99,7 +99,7 @@ mesh_metrics(
   #toolboxdata="/user_path/subcortexmesh_data",
   plot_medial_curve=True, 
   plot_projection=True, 
-  smooth=[0,0,5],
+  smooth=[0,5,5], #FMHW smoothing for: thickness, surface area, curvature
   native_meshes=True, 
   overwrite=True, 
   silent=False)
@@ -120,7 +120,7 @@ The plotting arguments are also False by default and allow users to check the co
 
 ### Merging all surfaces
 
-It is possible to treat all 19 ROIs as one and merge their vertex-wise surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all 19 suncortical meshes have been created):
+It is possible to treat all 19 ROIs as one and merge their vertex-wise surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all 19 subcortical meshes have been created):
 
 ``` python
 from subcortexmesh import merge_all
@@ -129,7 +129,7 @@ merge_all(
   #toolboxdata="/user_path/subcortexmesh_data",
   plot_merged=True, 
   overwrite=False, 
-  silent=False )
+  silent=False)
 ```
 
 The mesh is saved as e.g. outputdir/sub-xxx/allaseg_thickness.vtk. The plotter lets you visualise the outcome of the merging:
