@@ -159,10 +159,10 @@ def aseg_getvol(
                         print(f"=> Extracting {label} ...")
                       
                       #Get ROI's mask and multiply with original labels to preserve labelling
-                      _ = os.system(f"mri_binarize --i {asegvol} --match {index} --o {outputdir}/sub_volumes/{subid}/{label}.mgz > /dev/null")
-                      _ = os.system(f"mri_mask {asegvol} {outputdir}/sub_volumes/{subid}/{label}.mgz {outputdir}/sub_volumes/{subid}/{label}.mgz > /dev/null")
+                      _ = os.system(f"mri_binarize --i {asegvol} --match {index} --o {outputdir}/sub_volumes/{subid}/{label}.mgz > /dev/null 2>&1")
+                      _ = os.system(f"mri_mask {asegvol} {outputdir}/sub_volumes/{subid}/{label}.mgz {outputdir}/sub_volumes/{subid}/{label}.mgz > /dev/null 2>&1")
                       #convert to .nii for later use
-                      _ = os.system(f"mri_convert {outputdir}/sub_volumes/{subid}/{label}.mgz {outputdir}/sub_volumes/{subid}/{label}.nii.gz > /dev/null")
+                      _ = os.system(f"mri_convert {outputdir}/sub_volumes/{subid}/{label}.mgz {outputdir}/sub_volumes/{subid}/{label}.nii.gz > /dev/null 2>&1")
                       os.remove(f"{outputdir}/sub_volumes/{subid}/{label}.mgz") #no longer need the mgz
                   else:
                     if not silent: 
