@@ -40,7 +40,7 @@ def template_data_fetch(
         if datapath is None: 
             print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
         else:
-            print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run and was not found inside {datapath}. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
+            print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run and was not found inside {datapath}. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path (if the path is your own, you will have to specify it as in toolboxdata argument in the processing functions). Would you like to download the data now?\n")
         
         print(options)
         while True:

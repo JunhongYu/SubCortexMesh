@@ -69,6 +69,7 @@ def aseg_getvol(
     
     subindex=0
     for subid in sub_list: 
+        
         subindex=subindex+1
         if not silent: 
             print(f"Processing {subid} ... [{subindex}/{len(sub_list)}]")
@@ -110,7 +111,7 @@ def aseg_getvol(
             #error if registered volumes did not output successfully
             if os.path.exists(f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz"):
                 if not silent: 
-                    print(f"=> Done: coregistered volume stored to {antsdir}")
+                    print(f"  => Done: coregistered volume stored to {antsdir}")
                 asegvol=f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz"
             else:
                 if not silent: 
@@ -123,9 +124,6 @@ def aseg_getvol(
         
         #if coregistration worked, separating each ROI from the coregistered aseg
         if os.path.exists(asegvol):
-            
-            if not silent: 
-                print(f"Splitting subcortical volumes to {outputdir}/sub_volumes/{subid}/...")
             
             #get volumes of each aseg subcortical region separately
             #read through FreeSurferColorLUT.txt, which contains aseg ROI labels, and extract their volume masks independently
@@ -156,7 +154,7 @@ def aseg_getvol(
                   #Check if volume was extracted already
                   if not os.path.exists(f"{outputdir}/sub_volumes/{subid}/{label}.nii.gz") or overwrite:
                       if not silent: 
-                        print(f"=> Extracting {label} ...")
+                        print(f"  => Extracting {label} ...")
                       
                       #Get ROI's mask and multiply with original labels to preserve labelling
                       _ = os.system(f"mri_binarize --i {asegvol} --match {index} --o {outputdir}/sub_volumes/{subid}/{label}.mgz > /dev/null 2>&1")
@@ -164,6 +162,6 @@ def aseg_getvol(
                       #convert to .nii for later use
                       _ = os.system(f"mri_convert {outputdir}/sub_volumes/{subid}/{label}.mgz {outputdir}/sub_volumes/{subid}/{label}.nii.gz > /dev/null 2>&1")
                       os.remove(f"{outputdir}/sub_volumes/{subid}/{label}.mgz") #no longer need the mgz
-                  else:
-                    if not silent: 
-                        print(f"=> {label} already extracted")
+                
+        else:
+            print(f"The coregistered T1 may have failed to be computed. Expected file: {antsdir}/aseg_fsaverage_rigid_coreg.nii.gz")
