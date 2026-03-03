@@ -104,6 +104,10 @@ def aseg_getvol(
             movingaseg=ants.image_read(filename=f"{antsdir}/aseg.nii.gz", dimension=3)
             warpedimg=ants.apply_transforms(fixed=fixedT1, moving=movingaseg, transformlist=mytx['fwdtransforms'], interpolator="multiLabel")
             _ = ants.image_write(warpedimg, f"{antsdir}/aseg_fsaverage_rigid_coreg.nii.gz")
+            #Save a coregistered T1 too for later surface-to-T1 matching
+            warpedT1 = ants.apply_transforms(fixed=fixedT1, moving=movingT1,
+            transformlist=mytx['fwdtransforms'], interpolator="linear")
+            ants.image_write(warpedT1, f"{antsdir}/T1_fsaverage_rigid_coreg.nii.gz")
             
             #to visualise:
             #os.system(f"freeview -v {templatevol} {antsdir}/aseg_fsaverage_rigid_coreg.nii.gz:colormap=LUT")

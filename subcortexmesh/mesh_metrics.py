@@ -591,6 +591,9 @@ def mesh_metrics(
         else:
             if not silent: 
                 print(f"=> No mesh file (.vtk) found at all for {subid}.")
+    
+    if not silent: 
+            print(f"Surface metrics stored to {outputdir}/surface_metrics/")
 
 ###################################################################
 ###################################################################

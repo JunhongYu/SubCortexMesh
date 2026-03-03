@@ -87,6 +87,22 @@ The *plot_volnext2surf()* argument is False by default, but allows user to check
 
 Similarly, *vol2surf()* will create a directory called "sub_surfaces" inside the given outputdir.
 
+The surfaces stored in "sub_surfaces" can also be plotted together on top of a subject's corresponding volume with the surf_qcplot() function. Because the surfaces are based on a volume rigidly coregistered to fsaverage, the surfaces will match a volume generated with aseg_getvol(), i.e.  "sub_volumes/sub-[id]/ants_coreg/T1_fsaverage_rigid_coreg.nii.gz" (or any volume likewise coregistered):
+  
+``` python
+from subcortexmesh import surf_qcplot
+surf_qcplot(
+    volpath="/my_outputdir/sub_volumes/sub-[id]/ants_coreg/T1_fsaverage_rigid_coreg.nii.gz",
+    surfdir="/my_outputdir/sub_surfaces/sub-[id]",
+    vol_color_map= "gray",
+    outline_color_map = "tab20"
+    )
+```
+
+![](figures/surf_qcplot.png)
+
+Since regions will have been inflated and smoothed by default to minimise graphical artefacts, the boundaries naturally appear slightly wider than their original anatomy and overlapping (since the surfaces are processed by SubCortexMesh entirely separately, the visual overlap has no effect on later metrics values). In any event, this can  be run on surfaces produced with dilate_erode=False.
+
 ### Computing surface-based metrics
 
 The path to sub_surfaces can then be given to the following command in order to compute mesh-wise metrics:
