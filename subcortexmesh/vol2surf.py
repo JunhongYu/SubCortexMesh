@@ -173,6 +173,7 @@ def vol2surf(
                                 actor_mesh.SetPosition(0, -value, 0)
                         
                         plotter.add_slider_widget(update_y, rng=[-50, 50], title="Y-axis")
+                        plotter.add_axes(interactive=True, ylabel='Y (reversed)') #axis pointer helper
                         plotter.show(title=f"{subid} - {base}")
                     
                     ###################################################################

@@ -11,6 +11,7 @@ import pyvista as pv
 import os
 import re
 from sklearn.decomposition import PCA
+from scipy.spatial.transform import Rotation
 from typing import Optional, Union, List
 from pathlib import Path
 from subcortexmesh import template_data_fetch
@@ -466,7 +467,12 @@ def mesh_metrics(
                             if np.linalg.det(R) < 0:
                                 V[-1, :] *= -1
                                 R = V.T @ U.T 
-                                
+                            
+                            #limit rotation so it does not flip completely
+                            rot = Rotation.from_matrix(R)
+                            if rot.magnitude() > np.deg2rad(90):  #limit rotation to 90 degrees radians
+                                R = np.eye(3) #no rotation
+                            
                             #get translation vector needed to shift rotated X so its points align with Y's
                             #while X is rotated optimally along the same axis, we also want it in the same space (without offset)
                             #basically the difference between template's centroids and subject's centroids along axis
@@ -474,7 +480,7 @@ def mesh_metrics(
                             return R, t
                         
                         def align_subject_by_curve(subject_mesh, template_mesh,
-                                                   subject_medial_curve, template_medial_curve):
+                                                    subject_medial_curve, template_medial_curve):
                             #get curves
                             subj_curv = uniform_subsample(pts_to_array(subject_medial_curve))
                             tmpl_curv = uniform_subsample(pts_to_array(template_medial_curve))
@@ -510,7 +516,7 @@ def mesh_metrics(
                         icp = vtk.vtkIterativeClosestPointTransform()
                         icp.SetSource(aligned_subject_mesh)
                         icp.SetTarget(template_mesh)
-                        icp.GetLandmarkTransform().SetModeToRigidBody()
+                        icp.GetLandmarkTransform().SetModeToSimilarity()
                         icp.SetMaximumNumberOfIterations(50)
                         icp.Update()
                         transform_filter = vtk.vtkTransformPolyDataFilter()
@@ -578,11 +584,11 @@ def mesh_metrics(
                         if plot_projection:
                             #to visualise subject and template's thickness surfaces next to each other
                             if getting_thickness:
-                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'thickness', base)
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'thickness', base, subid)
                             if getting_surfarea:
-                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'surfarea', base)
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'surfarea', base, subid)
                             if getting_curv:
-                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'curvature', base)
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'curvature', base, subid)
                          
                     else:
                         if not silent: 
@@ -668,7 +674,7 @@ def print_stats(subdir, mesh, base):
 ###################################################################
 #visualiser to look at the surface with the medial curve crossing through
 
-def vis_medialcurve(mesh, medial_curve, base, subid):
+def vis_medialcurve(mesh, medial_curve, base='', subid=''):
     #surface mesh 
     subject_mapper = vtk.vtkPolyDataMapper()
     subject_mapper.SetInputData(mesh)
@@ -705,6 +711,18 @@ def vis_medialcurve(mesh, medial_curve, base, subid):
     interactor.SetRenderWindow(render_window)
     interactor.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
     
+    #axis pointer widget
+    # Create the axes actor 
+    axes = vtk.vtkAxesActor()
+    flipaxis = vtk.vtkTransform() 
+    flipaxis.Scale(1, -1, -1) #fix the Z/Y axis as this coord sys reverses it
+    axes.SetUserTransform(flipaxis)
+    widget = vtk.vtkOrientationMarkerWidget() 
+    widget.SetOrientationMarker(axes) 
+    widget.SetInteractor(interactor) 
+    widget.SetEnabled(True) 
+    widget.InteractiveOn()
+    
     render_window.Render()
     render_window.SetWindowName(f"{subid} - {base} medial curve")
     interactor.Initialize()
@@ -715,7 +733,7 @@ def vis_medialcurve(mesh, medial_curve, base, subid):
 #visualiser for the subject and template's surface-based data next to each other and check
 #if the projection from native space to template space was successful
 
-def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarname, base):
+def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarname, base='', subid=''):
     subj = pv.wrap(aligned_subject_mesh).copy() 
     fsavg = pv.wrap(subject_mesh_fsaverage).copy()
     subj.set_active_scalars(scalarname)
@@ -743,8 +761,8 @@ def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarnam
     #camera settings
     p.camera.focal_point = subj.center #adapt focal point to the mesh's centre
     p.camera.position = (subj.center[0], subj.center[1], subj.center[2]+200) #face opposite of Z
-    p.camera.up = (0, 1, 0)   # force Y axis up
-    p.add_axes(interactive=True)
+    p.camera.up = (0, 1, 0)   #force Y axis up
+    p.add_axes(interactive=True) #axis pointer helper
     
     #hovering function to view which mesh is which
     #create text actor that will show next to cursor
@@ -778,4 +796,4 @@ def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarnam
         
     p.iren.add_observer("MouseMoveEvent", mouse_track)
     
-    p.show(title=f"{base} {scalarname}")
+    p.show(title=f"{subid} - {base} {scalarname}")
