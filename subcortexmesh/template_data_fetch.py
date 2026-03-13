@@ -8,8 +8,8 @@ import requests
 import zipfile
 
 def template_data_fetch(
-    datapath: Optional[Union[str, Path]] = None,
-    template = 'fsaverage'
+    template: str,
+    datapath: Optional[Union[str, Path]] = None
 ):
     """Checks for the toolbox's template data and prompts for download
 
@@ -34,13 +34,18 @@ def template_data_fetch(
     else: 
         toolboxdatadir=datapath
     
+    if template=='fsaverage':
+        template_data_size='20 MB'
+    if template=='fslfirst':
+        template_data_size='548 KB'
+    
     if not os.path.exists(f"{toolboxdatadir}/template_data/{template}"):
         #prompts
         options = ["Yes (home directory)", "Yes (custom path)", "No"]
         if datapath is None: 
-            print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
+            print(f"SubCortexMesh's {template} data (~{template_data_size}) is required for this function to run. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
         else:
-            print(f"SubCortexMesh's {template} data (~19.2 MB) is required for this function to run and was not found inside {datapath}. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path (if the path is your own, you will have to specify it as in toolboxdata argument in the processing functions). Would you like to download the data now?\n")
+            print(f"SubCortexMesh's {template} data (~{template_data_size}) is required for this function to run and was not found inside {datapath}. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path (if the path is your own, you will have to specify it as in toolboxdata argument in the processing functions). Would you like to download the data now?\n")
         
         print(options)
         while True:

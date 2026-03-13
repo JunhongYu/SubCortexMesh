@@ -18,14 +18,14 @@ def surf_qcplot(
     ):
     """Plotting subject surface boundaries on top of matching volume
     
-    This function function will plot all surfaces generated with vol2surf() for a given subject (normally stored in "sub_surfaces/sub-[id]/") and plot them next to a selected .nii volume. Because the surfaces are based on a volume rigidly coregistered to fsaverage, the surfaces will match a volume generated with aseg_getvol(), i.e.  "sub_volumes/sub-[id]/ants_coreg/T1_fsaverage_rigid_coreg.nii.gz" (or any volume likewise coregistered). 
+    This function function will plot all surfaces generated with vol2surf() or fslfirst_getsurf() for a given subject (normally stored in "sub_surfaces/sub-[id]/") and plot their boundaries on top of a selected .nii volume. 
     
-    Note that as per aseg_getvol(), individual regions-of-interest (ROIs) will have been inflated and smoothed by default to minimise graphical artefacts, which will naturally be reflected in the plot: regions will appear with slightly wider boundaries than their original anatomy. Another logical result is that ROI boundaries will appear overlapping, but since the surfaces are processed by SubCortexMesh entirely separately, this has no effect on the metrics values (ROIs overlapping here cannot be mixed up in their calculation by mesh_metrics() or merge_all()).
-     
+    In the case of fsaverage-based surfaces: because the surfaces are based on a volume rigidly coregistered to fsaverage, the surfaces will match a volume generated with aseg_getvol(), i.e.  "sub_volumes/sub-[id]/ants_coreg/T1_fsaverage_rigid_coreg.nii.gz" (or any volume likewise coregistered). Note that as per aseg_getvol(), individual regions-of-interest (ROIs) will have been inflated and smoothed by default to minimise graphical artefacts, which will naturally be reflected in the plot: regions will appear with slightly wider boundaries than their original anatomy. Another logical result is that ROI boundaries will appear overlapping, but since the surfaces are processed by SubCortexMesh entirely separately, this has no effect on the metrics values (ROIs overlapping here cannot be mixed up in their calculation by mesh_metrics() or merge_all()).
+    
     Parameters
     ----------
     volpath : str, Path
-        The path to the volume to be plotted in the background (normally, the T1 volume coregistered to fsaverage as part of aseg_getvol() in sub_volume/sub-[id]/ants_coreg/).
+        The path to the volume to be plotted in the background (e.g., in the case of fsaverage, the T1 volume coregistered to fsaverage as part of aseg_getvol() in sub_volume/sub-[id]/ants_coreg/).
     surfdir : str, Path
         The path to the directory where subcortical .vtk meshes have been saved (normally, "sub_surfaces/sub-[id]".
     vol_color_map : str

@@ -13,16 +13,18 @@ from subcortexmesh import template_data_fetch
 def merge_all(
     inputdir: Union[str, Path],
     toolboxdata: Optional[Union[str, Path]] = None,
+    template=str,
     plot_merged=False,
     overwrite=True,
     silent=False,
 ):
     """Merging all subcortical output into a single surface object
     
-    This function creates a new mesh merging all 19 subcortical meshes outputted by 
-    mesh_metrics(), for given metrics separately, keeping their vertex-wise values. It 
-    will only work if all 19 subcortices have been processed. The merged mesh will be
-    saved along the surface meshes in the directories used as input.
+    This function creates a new mesh merging all subcortical meshes outputted by 
+    mesh_metrics() in a given template, for available metrics separately, keeping 
+    their vertex-wise values. It will only work if all subcortices have been 
+    processed. The merged mesh will be saved along the surface meshes in the 
+    directories used as input.
      
     Parameters
     ----------
@@ -33,6 +35,10 @@ def merge_all(
         The path of the "subcortexmesh_data" package data directory. The  default path 
         is assumed to be the user's home directory (pathlib's Path.home()). Users will 
         be prompted to download it if not found.
+    template: str
+        The name of the template the surfaces are supposed to be matching to. For surfaces
+        obtained via aseg_gevtol()/vol2surf(), it is 'fsaverage'. For surfaces
+        obtained via fslfirst_getsurf(), it is 'fslfirst'.
     plot_merged: bool
         Whether to plot the resulting merged mesh. Default is False.
     overwrite : bool
@@ -46,7 +52,13 @@ def merge_all(
     ###################################################################
     
     #template data is needed
-    toolboxdata=template_data_fetch(datapath=toolboxdata, template = 'fsaverage')
+    toolboxdata=template_data_fetch(datapath=toolboxdata, template = template)
+    if template=='fsaverage':
+        mergedmesh='allaseg'
+        nroi=19
+    if template=='fslfirst':
+        mergedmesh='allfslfirst'
+        nroi=15
     
     #Subfunctions
     #mesh loader function
@@ -135,44 +147,46 @@ def merge_all(
         
         for metric in ['thickness', 'surfarea', 'curvature']:
             
-            if not os.path.exists(f"{inputdir}/{subid}/allaseg_{metric}.vtk") or overwrite:
-                if not silent: 
-                    print(f"=> Merging {metric} ...")
+            if not os.path.exists(f"{inputdir}/{subid}/{mergedmesh}_{metric}.vtk") or overwrite:
                 
                 #listing files for that metric
                 mesh_list = [
                     f for f in os.listdir(f"{inputdir}/{subid}")
-                    if f"{metric}" in f and not f.startswith(f"allaseg_{metric}") #explicitly do not list the allaseg
+                    if f"{metric}" in f and not f.startswith(f"{mergedmesh}_{metric}") #explicitly do not list the merged vtk
                 ]
                 
                 if len(mesh_list) > 0:
-                    #force the mesh_list follow templates' ROI order as in the lookup table
-                    roi_lookup = pd.read_csv(f"{toolboxdata}/template_data/fsaverage/surfaces/allaseg_roi_id.txt",sep="\t")
-                    roi_order = roi_lookup['label'].tolist()
-                    #reorder mesh_list
-                    mesh_list_sorted = []
-                    for roi in roi_order:
-                        #find filename in mesh_list that starts with ROI label
-                        matches = [f for f in mesh_list if f.startswith(roi) and f.endswith(".vtk")]
-                        if matches: 
-                            mesh_list_sorted.extend(matches)
-                    mesh_list = mesh_list_sorted
                     
-                    if len(mesh_list) < 19:
+                    if len(mesh_list) != nroi:
                         if not silent: 
-                            print(f"{metric} ignored: all 19 subcortices must be available to create the aseg-wide surface.")
+                            print(f"{metric} ignored: all subcortices of this template ({nroi}) must be available to create the template-wide surface.")
                     else:
+                        if not silent: 
+                            print(f"=> Merging {metric} ...")
+                        
+                        #force the mesh_list follow templates' ROI order as in the lookup table
+                        roi_lookup = pd.read_csv(f"{toolboxdata}/template_data/{template}/surfaces/{mergedmesh}_roi_id.txt",sep="\t")
+                        roi_order = roi_lookup['label'].tolist()
+                        #reorder mesh_list
+                        mesh_list_sorted = []
+                        for roi in roi_order:
+                            #find filename in mesh_list that starts with ROI label
+                            matches = [f for f in mesh_list if f.startswith(roi) and f.endswith(".vtk")]
+                            if matches: 
+                                mesh_list_sorted.extend(matches)
+                        mesh_list = mesh_list_sorted
+                        
                         #merge mesh
                         merged_mesh=mesh_merger()
-                        
+                            
                         #save it
                         writer = vtk.vtkPolyDataWriter()
-                        writer.SetFileName(f"{inputdir}/{subid}/allaseg_{metric}.vtk")
+                        writer.SetFileName(f"{inputdir}/{subid}/{mergedmesh}_{metric}.vtk")
                         writer.SetInputData(merged_mesh)
                         _ = writer.Write()
                 else:
                     if not silent: 
-                        print(f"No mesh file (.vtk) found at all for {subid}.")
+                        print(f"No mesh file (.vtk) found at all for {subid}'s surface {metric}.")
             else:
                 if not silent: 
                     print(f"=> {metric} already merged")

@@ -19,7 +19,9 @@ from subcortexmesh import template_data_fetch
 def mesh_metrics(
     inputdir: Union[str, Path],
     outputdir: Union[str, Path],
+    template: str,
     toolboxdata: Optional[Union[str, Path]] = None,
+    metric: Union[str, List[str]] = ['thickness', 'curvature', 'surfarea'],
     smooth: List[int] = [0, 5, 5],
     plot_medial_curve=False,
     plot_projection=False,
@@ -30,7 +32,7 @@ def mesh_metrics(
     """Thickness and surface area computation
     
     This function extract thickness and surface area metrics from subcortical
-    surface objects outputted in vol2surf, via the following steps:
+    surface objects outputted in "sub_surfaces", via the following steps:
     - It renders medial curves, i.e. singular lines spanning the "core" of the
     meshes, between its two polar axes (estimated with principal component analysis)
     - The medial curve is used to align the subject mesh to the template mesh 
@@ -65,6 +67,13 @@ def mesh_metrics(
         The path of the "subcortexmesh_data" package data directory. The  default path 
         is assumed to be the user's home directory (pathlib's Path.home()). Users will 
         be prompted to download it if not found.
+    template: str
+        The name of the template the surfaces are supposed to be matching to. For surfaces
+        obtained via aseg_gevtol()/vol2surf(), it is 'fsaverage'. For surfaces
+        obtained via fslfirst_getsurf(), it is 'fslfirst'.
+    metric: str, list
+        The name(s) of the metric(s) to be computed. Options are "thickness", "curvature",
+        "surfarea", and default is all of them.
     smooth : list
         The full-maximum half-width (FMHW) values that will be applied for smoothing 
         each surface-based measure along the surface. In the following order: 
@@ -86,7 +95,7 @@ def mesh_metrics(
     """
     
     #template data is needed
-    toolboxdata=template_data_fetch(datapath=toolboxdata, template = 'fsaverage')
+    toolboxdata=template_data_fetch(datapath=toolboxdata, template = template)
     
     #list subjects in the surface subjects directory
     sub_list =[    d for d in os.listdir(inputdir)
@@ -138,6 +147,10 @@ def mesh_metrics(
                         #core of the shape, linking both ends, which can be used as a reference for thickness.
                         if not silent: 
                             print("   Generating a medial curve...")
+                        
+                        
+                        #for fslfirst brain-stem, need to rotate it as Y is 90 isn't right
+                        
                         
                         def extract_medial_curve(mesh, n_slices=100):
                             #make array of vertices 3D coordinates
@@ -237,6 +250,7 @@ def mesh_metrics(
                         
                         #load mesh of interest
                         subject_mesh = load_mesh(f"{inputdir}/{subid}/{meshfile}")
+                        subject_mesh = rotator(subject_mesh, template)
                         
                         #compute medial_curve
                         subject_medial_curve = extract_medial_curve(subject_mesh, n_slices=100)
@@ -252,7 +266,7 @@ def mesh_metrics(
                         #Distance is calculated in native space
                         #will later be "projected" on the template space after measure
                         
-                        if (not os.path.exists(f"{subdir}/{base}_thickness.vtk")) or overwrite:
+                        if ((not os.path.exists(f"{subdir}/{base}_thickness.vtk")) or overwrite) and 'thickness' in metric:
                             if not silent: 
                                 print("   Computing thickness...")
                             getting_thickness=True
@@ -287,7 +301,8 @@ def mesh_metrics(
                             
                         else:
                             if not silent: 
-                                print("   Thickness already computed.")
+                                if 'thickness' in metric:
+                                    print("   Thickness already computed.")
                             
                             getting_thickness=False
                         
@@ -302,7 +317,7 @@ def mesh_metrics(
                         #-That is how the ?h.area file is created."
                         #https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/msg29355.html
                         
-                        if (not os.path.exists(f"{subdir}/{base}_surfarea.vtk")) or overwrite:
+                        if ((not os.path.exists(f"{subdir}/{base}_surfarea.vtk")) or overwrite) and 'surfarea' in metric:
                             if not silent: 
                                 print("   Computing surface area...")
                                 
@@ -356,7 +371,8 @@ def mesh_metrics(
                             _ = subject_mesh.GetPointData().AddArray(get_surface_area(subject_mesh))
                         else:
                             if not silent: 
-                                print("   Surface area already computed.")
+                                if 'surfarea' in metric:
+                                    print("   Surface area already computed.")
                             
                             getting_surfarea=False
                         
@@ -367,7 +383,7 @@ def mesh_metrics(
                         #https://vtk.org/doc/nightly/html/classvtkCurvatures.html#details
                         #Inverted to mimick FreeSurfer's norm for the mean curvature (-curvature = convex,                 +curvature=concave) (cf. DOI: 10.1002/hbm.25776 figure 10)
                         
-                        if (not os.path.exists(f"{subdir}/{base}_curvature.vtk")) or overwrite:
+                        if ((not os.path.exists(f"{subdir}/{base}_curvature.vtk")) or overwrite) and 'curvature' in metric:
                             if not silent: 
                                 print("   Computing curvature...")
                             
@@ -394,15 +410,16 @@ def mesh_metrics(
                             _ = subject_mesh.GetPointData().AddArray(vertexwise_curv_vtk)
                         
                         else:
-                            if not silent: 
-                                print("   Curvature already computed.")
+                            if not silent:
+                                if 'curvature' in metric:
+                                    print("   Curvature already computed.")
                             
                             getting_curv=False
                         
                         ###################################################################################
                         #########################native-space metrics######################################
                         
-                        #If you also want the vertex-wise metrics NOT projected to fsaverage space,
+                        #If you also want the vertex-wise metrics NOT projected to template space,
                         #you can save the aligned native space mesh (thickness and surfarea scalars attached)
                         if native_meshes:
                             if not silent: 
@@ -421,12 +438,13 @@ def mesh_metrics(
                         ###################################################################################
                         #######################subject-to-template registration############################
                         
-                        #We align the two object's medial curves via rigid rotation (to later improve the native-to-fsaverage values projection)
+                        #We align the two object's medial curves via rigid rotation (to later improve the native-to-template values projection)
                         if not silent: 
-                            print("   Alignment to fsaverage template...")
+                            print(f"   Alignment to {template} template...")
                         
-                        #prepare the fsaverage template's mesh and curve
-                        template_mesh = load_mesh(f"{toolboxdata}/template_data/fsaverage/surfaces/{meshfile}")
+                        #prepare the template's mesh and curve
+                        template_mesh = load_mesh(f"{toolboxdata}/template_data/{template}/surfaces/{meshfile}")
+                        template_mesh = rotator(template_mesh, template)
                         template_medial_curve = extract_medial_curve(template_mesh, n_slices=100)
                         
                         #function to get vertices to np coordinate arrays (N rows * 3 (xyz) columns)
@@ -572,11 +590,11 @@ def mesh_metrics(
                         
                         #project subject's scalars to template space
                         if getting_thickness:
-                            subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'thickness')
+                            subject_mesh_templatespace=native_to_template(aligned_subject_mesh, template_mesh, 'thickness')
                         if getting_surfarea:
-                            subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'surfarea')
+                            subject_mesh_templatespace=native_to_template(aligned_subject_mesh, template_mesh, 'surfarea')
                         if getting_curv:
-                            subject_mesh_fsaverage=native_to_template(aligned_subject_mesh, template_mesh, 'curvature')
+                            subject_mesh_templatespace=native_to_template(aligned_subject_mesh, template_mesh, 'curvature')
                         
                         #########################################################################
                         ##############################plot#######################################
@@ -584,11 +602,11 @@ def mesh_metrics(
                         if plot_projection:
                             #to visualise subject and template's thickness surfaces next to each other
                             if getting_thickness:
-                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'thickness', base, subid)
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_templatespace, 'thickness', base, subid, template)
                             if getting_surfarea:
-                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'surfarea', base, subid)
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_templatespace, 'surfarea', base, subid, template)
                             if getting_curv:
-                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, 'curvature', base, subid)
+                                vis_nativetotemplate(aligned_subject_mesh, subject_mesh_templatespace, 'curvature', base, subid, template)
                          
                     else:
                         if not silent: 
@@ -636,6 +654,23 @@ def scalar_smooth(mesh, scalararray, FWHM) :
         Ys = scalararray.copy()
     
     return Ys
+
+###################################################################
+###################################################################
+#rotator script to adapt meshes depending on template
+
+def rotator(mesh, template):
+    if template=='fslfirst':
+        #rotation
+        transform = vtk.vtkTransform()
+        transform.RotateX(90)
+        tf = vtk.vtkTransformPolyDataFilter()
+        tf.SetTransform(transform)
+        tf.SetInputData(mesh)
+        tf.Update()
+        return tf.GetOutput()
+    else:
+        return mesh
 
 ###################################################################
 ###################################################################
@@ -733,9 +768,9 @@ def vis_medialcurve(mesh, medial_curve, base='', subid=''):
 #visualiser for the subject and template's surface-based data next to each other and check
 #if the projection from native space to template space was successful
 
-def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarname, base='', subid=''):
+def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_templatespace, scalarname, base='', subid='', template=''):
     subj = pv.wrap(aligned_subject_mesh).copy() 
-    fsavg = pv.wrap(subject_mesh_fsaverage).copy()
+    fsavg = pv.wrap(subject_mesh_templatespace).copy()
     subj.set_active_scalars(scalarname)
     fsavg.set_active_scalars(scalarname)
     
@@ -785,7 +820,7 @@ def vis_nativetotemplate(aligned_subject_mesh, subject_mesh_fsaverage, scalarnam
                 label_actor.SetPosition(x+10,y+10)
                 label_actor.SetVisibility(True)
             elif picked_actor.GetMapper().GetInput()==fsavg:
-                label_actor.SetInput("FsAverage")
+                label_actor.SetInput(f"{template}")
                 label_actor.SetPosition(x+10,y+10)
                 label_actor.SetVisibility(True)
             else:
