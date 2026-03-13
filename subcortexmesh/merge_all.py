@@ -18,13 +18,24 @@ def merge_all(
     overwrite=True,
     silent=False,
 ):
-    """Merging all subcortical output into a single surface object
+    """Merging all subcortical outputs into a single surface object
     
     This function creates a new mesh merging all subcortical meshes outputted by 
     mesh_metrics() in a given template, for available metrics separately, keeping 
     their vertex-wise values. It will only work if all subcortices have been 
     processed. The merged mesh will be saved along the surface meshes in the 
     directories used as input.
+    
+    For fslfirst, the cerebella need to have been created in FSL FIRST inside the same
+    output directory as run_first_all's, naming them "*R_Cereb_first" and "*L_Cereb_first". 
+    It can be done as follows (do the same for `L_Cereb`):
+    #    run_first -i [subject T1file] \
+    #        -t [ sub-id_T1w_to_std_sub.mat produced by run_first_all/first_flirt] \
+    #        -n 40 \
+    #        -o "[subject_directory]/[sub-id]-R_Cereb_first" \
+    #        -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
+    #        -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"       
+    Then simply import them using SubCortexMesh's fslfirst_getsurf() and mesh_metrics().
      
     Parameters
     ----------
@@ -58,7 +69,7 @@ def merge_all(
         nroi=19
     if template=='fslfirst':
         mergedmesh='allfslfirst'
-        nroi=15
+        nroi=17
     
     #Subfunctions
     #mesh loader function

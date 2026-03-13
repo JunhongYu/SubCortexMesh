@@ -23,6 +23,16 @@ def fslfirst_getsurf(
     fail to identify subjects that do not have a "sub-ID" explicitly named somewhere in their
     folder name.
     
+    Note for cerebellar meshes: the cerebella need to be created inside the same output directory 
+    as run_first_all's, naming them "*R_Cereb_first" and "*L_Cereb_first". It can be done as follows 
+    (do the same for `L_Cereb`):
+    #    run_first -i [subject T1file] \
+    #        -t [ sub-id_T1w_to_std_sub.mat produced by run_first_all/first_flirt] \
+    #        -n 40 \
+    #        -o "[subject_directory]/[sub-id]-R_Cereb_first" \
+    #        -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
+    #        -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"       
+    
     Parameters
     ----------
     inputdir : str, Path
@@ -91,6 +101,8 @@ def fslfirst_getsurf(
                     region='thalamus'
                 if region == 'BrStem': 
                     region='brain-stem'
+                if region == 'Cereb': 
+                    region='cerebellum-cortex'
                 #get hemisphere 
                 hemi=re.search(r'-(L|R)?_?([^_]+)_first', meshfile).group(1)
                 if hemi=='L':

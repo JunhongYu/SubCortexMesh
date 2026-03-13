@@ -22,6 +22,8 @@ def surf_qcplot(
     
     In the case of fsaverage-based surfaces: because the surfaces are based on a volume rigidly coregistered to fsaverage, the surfaces will match a volume generated with aseg_getvol(), i.e.  "sub_volumes/sub-[id]/ants_coreg/T1_fsaverage_rigid_coreg.nii.gz" (or any volume likewise coregistered). Note that as per aseg_getvol(), individual regions-of-interest (ROIs) will have been inflated and smoothed by default to minimise graphical artefacts, which will naturally be reflected in the plot: regions will appear with slightly wider boundaries than their original anatomy. Another logical result is that ROI boundaries will appear overlapping, but since the surfaces are processed by SubCortexMesh entirely separately, this has no effect on the metrics values (ROIs overlapping here cannot be mixed up in their calculation by mesh_metrics() or merge_all()).
     
+    In the case of fslfirst-based surfaces: it appears no T1 volume aligned to the .vtk meshes is outputted by default in the FSL FIRST pipeline. Unless T1 register the volumes themselves, we suggest using FSL's own visualiser commands instead (slicesdir).
+    
     Parameters
     ----------
     volpath : str, Path
@@ -46,7 +48,10 @@ def surf_qcplot(
     vol_arr = vol.point_data[vol.active_scalars_name].reshape(vol.dimensions, order="F")
     
     #Load surfaces and store them in an array
-    surf_files = sorted(os.listdir(surfdir))
+    surf_files = [f for f in sorted(os.listdir(surfdir)) if f.endswith(".vtk")]
+    if len(surf_files) == 0:
+        raise FileNotFoundError(f"No surface files were found in {surfdir}.")
+    
     surfaces = []
     for fname in surf_files:
         reader = vtk.vtkPolyDataReader()

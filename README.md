@@ -2,7 +2,7 @@
 
 # SubCortexMesh
 
-## Surface-based postprocessing of segmented subcortices in Python 
+## Surface-based postprocessing of segmented subcortices in Python
 
 This toolbox provides commands for surface based measures of subcortical segmentations from FreeSurfer and FSL FIRST, including thickness, surface area and curvature. Depending on the segmentation algorithm, compatible subcortices are: the left and right **Thalamus**, **Caudate**, **Putamen**, **Pallidum**, **Hippocampus**, **Amygdala**, **Accumbens-area**, **Ventral diencephalon**, **Cerebellum-Cortex**, and the **Brain-Stem**.
 
@@ -28,7 +28,7 @@ When surface files are gathered, SubCortexMesh:
 
 [^readme-1]: The fsaverage/MNI305 surface-based templates for each ROI have been produced by using SubCortexMesh's own functions (aseg_getvol(), vol2surf()) with default parameters, on the fsaverage template's own aseg.mgz in FreeSurfer 7.4.1 (\$FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz).
 
-[^readme-2]: The fslfirst/MNI152 surface-based templates for each ROI have been produced by using FSL v.6.0.6's own probabilistic models (.bmv files in \$FSLDIR/data/first/models_336_bin/) on the standard MNI 152 1mm T1w volume (\$FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz).
+[^readme-2]: The fslfirst/MNI152 surface-based templates for each ROI have been produced by using FSL v.6.0.6's own probabilistic models (.bmv files in \$FSLDIR/data/first/models_336_bin/) on the standard MNI 152 1mm T1w volume (\$FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz). Cerebellar meshes were produced using [run_first](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage), with "-n 40" modes, using the putamen intensities to normalise its intensity sample as recommended by the latter's documentation.
 
 ## Installation
 
@@ -117,7 +117,13 @@ Since FSL FIRST already computes .vtk 3D surface meshes from its own subcortical
     )
 ```
 
-Note that fslfirst_getsurf() follows the sub-xxx convention for participant IDs and will only account for folders that contain such IDs.
+Note that fslfirst_getsurf() follows the sub-xxx convention for participant IDs and will only account for folders that contain such IDs. Optional [cerebellar surfaces](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) also need to be named as the other ROIs produced by first_run_all (*L-Cereb_first.vtk and *R-Cereb_first.vtk).[^readme-3]
+
+[^readme-3]: This can be done with commands such as (do the same for `L_Cereb`): \
+    `run_first -i [subject T1file] \ -t [ sub-id_T1w_to_std_sub.mat produced by run_first_all/first_flirt] \ -n 40 \ -o "[subject_directory]/[sub-id]-R_Cereb_first" \ -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
+     -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"`
+
+    The putamen used as the intensity reference is what is indicated by [FSL FIRST's documentation](<https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage>) and 40 just the number of nodes used for most ROIs.
 
 ### Computing surface-based metrics
 
@@ -154,7 +160,7 @@ The plotting arguments are also False by default and allow users to check the co
 
 ### Merging all surfaces
 
-It is possible to treat all ROIs as one and merge their vertex-wise surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all subcortical meshes have been created):
+It is possible to treat all ROIs as one and merge their vertex-wise surface metrics into one big mesh. This is what the following command accomplishes, subject-per-subject (provided all subcortical meshes have been created, including the cerebella for FSL FIRST):
 
 ``` python
 from subcortexmesh import merge_all

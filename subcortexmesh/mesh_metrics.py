@@ -130,12 +130,13 @@ def mesh_metrics(
                     #get base name to name surface the same way
                     base = re.sub(r'\.vtk?$', '', meshfile)
                     
-                    if (
-                        not os.path.exists(f"{subdir}/{base}_thickness.vtk") 
-                        or not os.path.exists(f"{subdir}/{base}_surfarea.vtk")
-                        or not os.path.exists(f"{subdir}/{base}_curvature.vtk")  
-                        or overwrite
-                    ):
+                    #check if the file already exists flexibly depending on metrics selected
+                    files_exist = all(
+                        os.path.exists(f"{subdir}/{base}_{m}.vtk")
+                        for m in (metric if isinstance(metric, list) else [metric])
+                    )
+                    
+                    if not files_exist or overwrite:
                         ###################################################################################
                         ###############################medial curve building###############################
                         
