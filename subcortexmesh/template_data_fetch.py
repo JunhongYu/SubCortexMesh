@@ -35,9 +35,9 @@ def template_data_fetch(
         toolboxdatadir=datapath
     
     if template=='fsaverage':
-        template_data_size='20 MB'
+        template_data_size='11.7 MB'
     if template=='fslfirst':
-        template_data_size='612 KB'
+        template_data_size='5.7 MB'
     
     if not os.path.exists(f"{toolboxdatadir}/template_data/{template}"):
         #prompts

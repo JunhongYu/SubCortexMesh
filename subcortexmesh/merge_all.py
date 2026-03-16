@@ -29,8 +29,10 @@ def merge_all(
     For fslfirst, the cerebella need to have been created in FSL FIRST inside the same
     output directory as run_first_all's, naming them "*R_Cereb_first" and "*L_Cereb_first". 
     It can be done as follows (do the same for `L_Cereb`):
+            #generate cort-specific registration matrix for cerebellum
+    #    first_flirt [subject T1file] "[subject_directory]/[sub-id]" -cort
     #    run_first -i [subject T1file] \
-    #        -t [ sub-id_T1w_to_std_sub.mat produced by run_first_all/first_flirt] \
+    #        -t "[subject_directory]/[sub-id_cort.mat]" \
     #        -n 40 \
     #        -o "[subject_directory]/[sub-id]-R_Cereb_first" \
     #        -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
