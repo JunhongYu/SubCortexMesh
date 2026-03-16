@@ -53,16 +53,11 @@ def aseg_getvol(
     if not silent: 
         print(f"Writing the {outputdir}/sub_volumes directory...")
     os.makedirs(os.path.join(f"{outputdir}/sub_volumes"), exist_ok=True)
-    
-    if not os.path.exists(f"{outputdir}/sub_volumes/aseg_labels.txt" or overwrite):
-        if not silent: 
-            print("Extracting the aseg atlas ROI labels...")
-        #aseg.mgz was 7.4.1's $FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz
-        _ = os.system(f"mri_segstats --seg {toolboxdata}/template_data/fsaverage/aseg.mgz --sum {outputdir}/sub_volumes/aseg_labels.txt  >/dev/null")
-    
+      
     #get aseg atlas's ROI indices from fsaverage's aseg.mgz into an array
-    #indices are in the second column (lines with no #) printed
-    aseg_indices = sorted({int(line.split()[1]) for line in open(f"{outputdir}/sub_volumes/aseg_labels.txt") if not line.startswith("#")})
+    #aseg.mgz was 7.4.1's $FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz, the table was extracted using mri_segstats --seg on aseg.mgz
+    #indices are in the second column (from lines with no #) printed
+    aseg_indices = sorted({int(line.split()[1]) for line in open(f"{toolboxdata}/template_data/fsaverage/aseg_labels.txt") if not line.startswith("#")})
     #list subs
     sub_list=[f for f in next(os.walk(f"{inputdir}"))[1] if f.startswith("sub-")]
     _ = sub_list.sort()
