@@ -41,7 +41,7 @@ def template_data_fetch(
     
     if not os.path.exists(f"{toolboxdatadir}/template_data/{template}"):
         #prompts
-        options = ["Yes (home directory)", "Yes (custom path)", "No"]
+        options = ["1. Yes (home directory)", "2. Yes (custom path)", "3. No"]
         if datapath is None: 
             print(f"SubCortexMesh's {template} data (~{template_data_size}) is required for this function to run. You can either let the package download it to the default path ({homedir}/subcortexmesh_data) or provide your own path. Would you like to download the data now?\n")
         else:
