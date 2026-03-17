@@ -6,14 +6,15 @@ import numpy as np
 import pandas as pd 
 import os
 import vtk
-from typing import Optional, Union
+from typing import Optional, Union, List
 from pathlib import Path
 from subcortexmesh import template_data_fetch
 
 def merge_all(
     inputdir: Union[str, Path],
-    toolboxdata: Optional[Union[str, Path]] = None,
     template=str,
+    toolboxdata: Optional[Union[str, Path]] = None,
+    metric: Union[str, List[str]] = ['thickness', 'curvature', 'surfarea'],
     plot_merged=False,
     overwrite=True,
     silent=False,
@@ -27,31 +28,26 @@ def merge_all(
     directories used as input.
     
     For fslfirst, the cerebella need to have been created in FSL FIRST inside the same
-    output directory as run_first_all's, naming them "*R_Cereb_first" and "*L_Cereb_first". 
-    It can be done as follows (do the same for `L_Cereb`):
-            #generate cort-specific registration matrix for cerebellum
-    #    first_flirt [subject T1file] "[subject_directory]/[sub-id]" -cort
-    #    run_first -i [subject T1file] \
-    #        -t "[subject_directory]/[sub-id_cort.mat]" \
-    #        -n 40 \
-    #        -o "[subject_directory]/[sub-id]-R_Cereb_first" \
-    #        -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
-    #        -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"       
-    Then simply import them using SubCortexMesh's fslfirst_getsurf() and mesh_metrics().
+    output directory as run_first_all's, naming them "*R_Cereb_first" and "*L_Cereb_first",
+    and processed with subseg_getvol() and vol2surf(). See subseg_getvol()'s description 
+    for guidance.
      
     Parameters
     ----------
     inputdir : str, Path
         The path where the surface-based metrics were outputted (using mesh_metrics()).
         The outputdir will be the inputdir.
-    toolboxdata : str, Path, optional
-        The path of the "subcortexmesh_data" package data directory. The  default path 
-        is assumed to be the user's home directory (pathlib's Path.home()). Users will 
-        be prompted to download it if not found.
     template: str
         The name of the template the surfaces are supposed to be matching to. For surfaces
         obtained via aseg_gevtol()/vol2surf(), it is 'fsaverage'. For surfaces
         obtained via fslfirst_getsurf(), it is 'fslfirst'.
+    toolboxdata : str, Path, optional
+        The path of the "subcortexmesh_data" package data directory. The  default path 
+        is assumed to be the user's home directory (pathlib's Path.home()). Users will 
+        be prompted to download it if not found.
+    metric: str, list
+        The name(s) of the metric(s) to be computed. Options are "thickness", "curvature",
+        "surfarea", and default is all of them.
     plot_merged: bool
         Whether to plot the resulting merged mesh. Default is False.
     overwrite : bool
@@ -126,7 +122,7 @@ def merge_all(
         original_points = [wm.points.copy() for wm in wrapped_meshes]
         #append meshes in plot
         for wm in wrapped_meshes:
-            _ = plotter.add_mesh(wm, scalars=metric, cmap="viridis")
+            _ = plotter.add_mesh(wm, scalars=measure, cmap="viridis")
         #Y flipped as VTK's coord syst not following RAS
         plotter.reset_camera()
         loc, foc, _ = plotter.camera_position
@@ -143,7 +139,7 @@ def merge_all(
             plotter.render()
         
         plotter.add_slider_widget(update_distance, rng=[0, 50], value=0)
-        plotter.show()
+        plotter.show(title=f"{subid} - {measure}")
     
     ###################################################################
     ###################################################################
@@ -158,24 +154,27 @@ def merge_all(
         if not silent: 
             print(f"Creating all-aseg surfaces for {subid}...")
         
-        for metric in ['thickness', 'surfarea', 'curvature']:
+        for measure in ['thickness', 'surfarea', 'curvature']:
             
-            if not os.path.exists(f"{inputdir}/{subid}/{mergedmesh}_{metric}.vtk") or overwrite:
+            if measure not in metric:
+                continue
+            
+            if not os.path.exists(f"{inputdir}/{subid}/{mergedmesh}_{measure}.vtk") or overwrite:
                 
                 #listing files for that metric
                 mesh_list = [
                     f for f in os.listdir(f"{inputdir}/{subid}")
-                    if f"{metric}" in f and not f.startswith(f"{mergedmesh}_{metric}") #explicitly do not list the merged vtk
+                    if f"{measure}" in f and not f.startswith(f"{mergedmesh}_{measure}") #explicitly do not list the merged vtk
                 ]
                 
                 if len(mesh_list) > 0:
                     
                     if len(mesh_list) != nroi:
                         if not silent: 
-                            print(f"{metric} ignored: all subcortices of this template ({nroi}) must be available to create the template-wide surface.")
+                            print(f"{measure} ignored: all subcortices of this template ({nroi}) must be available to create the template-wide surface.")
                     else:
                         if not silent: 
-                            print(f"=> Merging {metric} ...")
+                            print(f"=> Merging {measure} ...")
                         
                         #force the mesh_list follow templates' ROI order as in the lookup table
                         roi_lookup = pd.read_csv(f"{toolboxdata}/template_data/{template}/surfaces/{mergedmesh}_roi_id.txt",sep="\t")
@@ -193,13 +192,18 @@ def merge_all(
                         merged_mesh=mesh_merger()
                             
                         #save it
+                        #guarantee overwriting
+                        out_path=f"{inputdir}/{subid}/{mergedmesh}_{measure}.vtk"
+                        if os.path.exists(out_path):
+                            os.remove(out_path)
+                        
                         writer = vtk.vtkPolyDataWriter()
-                        writer.SetFileName(f"{inputdir}/{subid}/{mergedmesh}_{metric}.vtk")
+                        writer.SetFileName(out_path)
                         writer.SetInputData(merged_mesh)
                         _ = writer.Write()
                 else:
                     if not silent: 
-                        print(f"No mesh file (.vtk) found at all for {subid}'s surface {metric}.")
+                        print(f"No mesh file (.vtk) found at all for {subid}'s surface {measure}.")
             else:
                 if not silent: 
-                    print(f"=> {metric} already merged")
+                    print(f"=> {measure} already merged")

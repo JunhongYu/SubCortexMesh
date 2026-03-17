@@ -21,7 +21,7 @@ def vol2surf(
     ):
     """Converting subcortical volumes to surface meshes
     
-    This function function converts the separate volumes outputted by aseg_getvol, 
+    This function function converts the separate volumes outputted by subseg_getvol, 
     using the discrete marching cube method. This includes pre-conversion dilation/erosion 
     of the volume and smoothing of the surface (both can be disabled) to ensure meshes are 
     not too coarse and noisy. Note that the dilation/smootinh process was applied to the 
@@ -34,7 +34,8 @@ def vol2surf(
     Parameters
     ----------
     inputdir : str, Path
-        The path where the subcortical volumes were outputted (using aseg_getvol()).
+        The sub_volumes/ directory where the subcortical volumes were outputted 
+        (using subseg_getvol()).
     outputdir : str, Path
         The path where subcortical meshes will be saved (creates the "sub_surfaces" 
         directory inside the path).
@@ -173,24 +174,29 @@ def vol2surf(
                                 actor_mesh.SetPosition(0, -value, 0)
                         
                         plotter.add_slider_widget(update_y, rng=[-50, 50], title="Y-axis")
-                        plotter.add_axes(interactive=True, ylabel='Y (reversed)') #axis pointer helper
+                        plotter.add_axes(interactive=True, ylabel='Y') #axis pointer helper
                         plotter.show(title=f"{subid} - {base}")
                     
                     ###################################################################
                     ###################################################################
                     
                     #save smoothed mesh
+                    #guarantee overwriting
                     out_path = os.path.join(subdir, f"{base.lower()}.vtk")
+                    if os.path.exists(out_path):
+                        os.remove(out_path)
+                    
                     writer = vtk.vtkPolyDataWriter() 
                     writer.SetFileName(out_path)
                     writer.SetInputData(mesh)
                     _ = writer.Write()
                     if not silent: 
-                        print(f"=> Saved {base} to {out_path}")
+                        print(f"  => Saved {base} to {out_path}")
                 else:
                     out_path = os.path.join(subdir, f"{base.lower()}.vtk")
                     if not silent: 
-                        print(f"=> {base} mesh already in: {out_path}")
+                        print(f"  => {base} mesh already in: {out_path}")
         else:
             if not silent: 
-                print(f"=> No volume file (.nii) found at all for {subid}.")
+                print(f"  => No volume file (.nii) found at all for {subid}.")
+                
