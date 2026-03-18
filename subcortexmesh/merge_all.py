@@ -38,9 +38,8 @@ def merge_all(
         The path where the surface-based metrics were outputted (using mesh_metrics()).
         The outputdir will be the inputdir.
     template: str
-        The name of the template the surfaces are supposed to be matching to. For surfaces
-        obtained via aseg_gevtol()/vol2surf(), it is 'fsaverage'. For surfaces
-        obtained via fslfirst_getsurf(), it is 'fslfirst'.
+        The name of the template the surfaces are supposed to be matching to. For FreeSurfer
+        outputs, it is 'fsaverage'. For FSL FIRST, it is 'fslfirst'.
     toolboxdata : str, Path, optional
         The path of the "subcortexmesh_data" package data directory. The  default path 
         is assumed to be the user's home directory (pathlib's Path.home()). Users will 
