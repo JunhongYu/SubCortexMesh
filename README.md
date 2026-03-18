@@ -43,31 +43,39 @@ toolboxdata=template_data_fetch(template='fsaverage') #or 'fslfirst'
 
 ## Getting started
 
-### Extracting and converting subcortical volumes
+### Extracting and coregistering subcortical volumes
 
-The registration and extraction of segmentation volumes is done on entire output subjects directories. Typically, a subject directory is `$SUBJECTS_DIR` for FreeSurfer's [recon-all pipeline](https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all), and a directory where [run_first_all](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#segmentation-with-run_first_all) has sent its output in FSL (to guarantee the success of that process, we ask users to make a main directory containing one subdirectory for each subject). 
+The extraction of segmentation volumes is done on preprocessing subjects directories, where subcortical segmentations are available. Typically, a subject directory is the output `$SUBJECTS_DIR` for FreeSurfer's [recon-all pipeline](https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all), and a directory where [run_first_all](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#segmentation-with-run_first_all) has sent its output in FSL. SubCortexMesh finds all subjects inside the directory and extracts their subcortical segmentation volumes ("aseg.mgz" in FreeSurfer,"\*all_fast_firstseg.nii.gz" in FSL). To facilitate later standardisation, those volumes are coregistered to their respective templates (fsaverage/MNI305 for FreeSurfer, MNI152 for FSL).
 
-In the subjects directory, SubCortexMesh collates all subjects' subcortical segmentation volumes at once ("aseg.mgz" in FreeSurfer,"*all_fast_firstseg" in FSL). 
-
-T1 volumes are required to coregister the segmentation volumes to their respective template (fsaverage/MNI305 for FreeSurfer, MNI152 for FSL). These should be stored as [sub-ID]/mri/T1.mgz for FreeSurfer and expected to be stored in the same "inputdir" path for FSL FIRST (the function will search for files containing the sub-ID and the "*T1w.nii*" suffix for each subject).
-
-SubCortexMesh follows the sub-xxx convention for participant IDs and will only account for folders that contain such IDs. In FSL FIRST, optional [cerebellar surfaces](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) also need to be named *L-Cereb_first.vtk and *R-Cereb_first.vtk.[^readme-3]
-
-[^readme-3]: Cerebellar segmentations can be done with commands such as (do the same for `L_Cereb`):\
-    `first_flirt [subject T1file] "[subject_directory]/[sub-id]" -cort`\
-    `run_first -i [subject T1file] \ -t "[subject_directory]/[sub-id_cort.mat]" \ -n 40 \ -o "[subject_directory]/[sub-id]-R_Cereb_first" \ -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \  -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"` The putamen used as the intensity reference is what is indicated by [FSL FIRST's documentation](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) and 40 just the number of nodes used for most ROIs.
-    
-Below is the command that extracts all subcortical volumes (the *toolboxdata* argument only needs to be specified if it was not downloaded to the default path, i.e. the user's home directory).
+Below is the command that automatically extracts and coregisters all subcortical volumes of a subjects directory:
 
 ``` python
 from subcortexmesh import subseg_getvol
 subseg_getvol(
-  inputdir="SPRENG_FreeSurfer_subsample/", 
+  inputdir="FreeSurfer_sub_directory/", 
   outputdir="/my_outputdir/",
   #toolboxdata="/user_path/subcortexmesh_data",
   overwrite=False, 
   silent=False)
 ```
+
+Notes:
+
+-   The path to the *toolboxdata* argument only needs to be specified if it was not downloaded to the default path, i.e. the user's home directory
+
+-   SubCortexMesh follows the sub-\*\*\* convention for participant IDs and will only account for folders with names that contain such IDs.
+
+-   In FSL FIRST, optional [cerebellar surfaces](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) also need to be named \**L-Cereb_first.nii.gz* and \**R-Cereb_first.nii.gz*.[^readme-3]
+
+-   The coregistration requires T1 volumes to be present for each subject: it should be stored as [sub-ID]/mri/T1.mgz for FreeSurfer and stored in the same "inputdir" path for FSL FIRST (the function will search for files containing the sub-ID and "T1w.nii" for each subject).
+
+[^readme-3]: Cerebellar segmentations can be done in FSL with the following commands (do the same for `L_Cereb`):\
+    `first_flirt [subject's T1file] "[subject's subdirectory]/[sub-id]" -cort`\
+    `run_first -i [subject's T1file] \           -t "[``subject's subdirectory``]/[sub-id_cort.mat]" \           -n 40 \ -o "[``subject's subdirectory``]/[sub-id]-R_Cereb_first" \           -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \            -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"` \
+    \
+    The putamen used as the intensity reference is what is indicated by [FSL FIRST's documentation](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) and 40 is just the number of modes used for most ROIs.
+
+### Converting volumes to surfaces
 
 *subseg_getvol()* will create a directory called "sub_volumes" inside the path given (*outputdir*). The path to sub_volumes can then be given to the following command in order to convert the volumes into surfaces:
 
@@ -84,7 +92,7 @@ vol2surf(
     )
 ```
 
-The *plot_volnext2surf()* argument is False by default, but allows user to check if they are satisfied with the resulting mesh. Below is an example with a left thalamus: A) shows the volume and the surface created from the former superimposed, B) the voxel-based volume, C) the vertex-wise surface (with VTK' [discrete marching cubes](https://vtk.org/doc/nightly/html/classvtkDiscreteMarchingCubes.html) method, no smoothing), D) the surface after dilation+erosion and smoothing.
+The *plot_volnext2surf()* argument is False by default, but allows users to check if they are satisfied with the resulting mesh. Below is an example with a left thalamus: A) shows the volume and the surface created from the former superimposed, B) the voxel-based volume, C) the vertex-wise surface (with VTK' [discrete marching cubes](https://vtk.org/doc/nightly/html/classvtkDiscreteMarchingCubes.html) method, no smoothing), D) the surface after dilation+erosion and smoothing.
 
 ![](figures/subseg_getvol_vol2surf.png)
 
@@ -92,7 +100,7 @@ Similarly, *vol2surf()* will create a directory called "sub_surfaces" inside the
 
 ### Visualising converted surfaces meshes
 
-The surfaces stored in "sub_surfaces" can also be plotted together on top of a subject's corresponding volume with the surf_qcplot() function. Because the surfaces are based on a volume rigidly coregistered to fsaverage, the surfaces will match a volume generated with subseg_getvol(), i.e. "sub_volumes/sub-[id]/ants_coreg/T1_[template]_rigid_coreg.nii.gz" (or any volume likewise coregistered):
+The surfaces stored in "sub_surfaces" can also be plotted together on top of a subject's corresponding volume with the surf_qcplot() function. Because the surfaces are based on a volume rigidly coregistered to fsaverage, the surfaces will match a volume generated with subseg_getvol(), i.e. "sub_volumes/sub-[id]/ants_coreg/T1\_[template]\_rigid_coreg.nii.gz" (or any volume likewise coregistered):
 
 ``` python
 from subcortexmesh import surf_qcplot
@@ -106,7 +114,7 @@ surf_qcplot(
 
 ![](figures/surf_qcplot.png)
 
-Since regions will have been inflated and smoothed by default to minimise graphical artefacts (e.g. hanging sparse voxels, sharp mesh spikes), the boundaries naturally appear slightly wider than their original anatomy and overlapping (since the surfaces are processed by SubCortexMesh entirely separately, the visual overlap has no effect on later metrics values). In any event, this can be run on surfaces produced with dilate_erode=False.
+Since regions will have been inflated and smoothed by default to minimise graphical artefacts (e.g. hanging sparse voxels, sharp mesh spikes), the boundaries naturally appear slightly wider than their original anatomy and overlapping. Note that because the surfaces are processed by SubCortexMesh entirely separately, the visual overlap has no effect on later metrics values. In any event, this can be run on surfaces produced with dilate_erode=False.
 
 ### Computing surface-based metrics
 
@@ -129,7 +137,7 @@ mesh_metrics(
   silent=False)
 ```
 
-The measure will create a "surface_metrics/" directory in the *outputdir*. The *native_meshes* argument gives the option to also save .vtk surface meshes in native space, containing the scalars for each metric. 
+The measure will create a "surface_metrics/" directory in the *outputdir*. The *native_meshes* argument gives the option to also save .vtk surface meshes in native space, containing the scalars for each metric.
 
 mesh_metrics() also saves native summary statistics tables in each subject directory. E.g., surface_metrics/sub-xxx/surfarea_stats.txt:
 
@@ -140,7 +148,7 @@ mesh_metrics() also saves native summary statistics tables in each subject direc
 | left-amygdala        | 0.685 | 0.199 | 0.159 | 1.254 | 1.095 | 1288   |
 | ...                  |       |       |       |       |       |        |
 
-The plotting arguments are also False by default and allow users to check the computation process. The medial curve, the line crossing through the centre of the mesh (A) is fundamental to the thickness measure, as it is a measure of radial distance between the medial curve and the outer surface. It is also used to align the subject-space and template-space mesh further. Likewise, plotting the subject surface (B) and its template equivalent (C) shows how accurate the standardisation is.
+The plotting arguments are also False by default and allow users to check the computation process. The medial curve, the line crossing through the centre of the mesh (A) is fundamental to the thickness measure, as it is a measure of radial distance between the medial curve and the outer surface. It is also used to align the subject-space and template-space mesh further. Likewise, plotting the subject surface (B) and its template equivalent (C) shows how accurate the standardisation was.
 
 ![](figures/medialcurve_standardization.png)
 
