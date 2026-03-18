@@ -148,10 +148,12 @@ def merge_all(
     sub_list =[    d for d in os.listdir(inputdir)
         if os.path.isdir(os.path.join(inputdir, d))]
     
+    subindex=0
     for subid in sub_list:
+        subindex=subindex+1
         
         if not silent: 
-            print(f"Creating all-aseg surfaces for {subid}...")
+            print(f"Creating all-aseg surfaces for {subid}... [{subindex}/{len(sub_list)}]")
         
         for measure in ['thickness', 'surfarea', 'curvature']:
             
