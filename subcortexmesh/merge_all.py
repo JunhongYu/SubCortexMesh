@@ -12,7 +12,7 @@ from subcortexmesh import template_data_fetch
 
 def merge_all(
     inputdir: Union[str, Path],
-    template=str,
+    template: str,
     toolboxdata: Optional[Union[str, Path]] = None,
     metric: Union[str, List[str]] = ['thickness', 'curvature', 'surfarea'],
     plot_merged=False,
