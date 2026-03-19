@@ -165,14 +165,14 @@ def merge_all(
                 #listing files for that metric
                 mesh_list = [
                     f for f in os.listdir(f"{inputdir}/{subid}")
-                    if f"{measure}" in f and not f.startswith(f"{mergedmesh}_{measure}") #explicitly do not list the merged vtk
+                    if f"{measure}" in f and not f.startswith("all") #explicitly do not list the merged vtk
                 ]
                 
                 if len(mesh_list) > 0:
                     
                     if len(mesh_list) != nroi:
                         if not silent: 
-                            print(f"{measure} ignored: all subcortices of this template ({nroi}) must be available to create the template-wide surface.")
+                            print(f"{measure} ignored: all subcortices of the {template} template ({nroi}) must be available to create the template-wide surface.")
                     else:
                         if not silent: 
                             print(f"=> Merging {measure} ...")
