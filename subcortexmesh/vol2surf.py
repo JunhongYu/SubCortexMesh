@@ -13,11 +13,11 @@ from pathlib import Path
 def vol2surf(
     inputdir: Union[str, Path],
     outputdir: Union[str, Path],
-    dilate_erode=True,
-    smoothing=15,
-    plot_volnext2surf=False,
-    overwrite=True,
-    silent=False
+    dilate_erode: bool = True,
+    smoothing: int = 15,
+    plot_volnext2surf: bool = False,
+    overwrite: bool = True,
+    silent: bool = False
     ):
     """Converting subcortical volumes to surface meshes
     

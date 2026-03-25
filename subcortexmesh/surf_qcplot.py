@@ -29,7 +29,7 @@ def surf_qcplot(
     surfdir : str, Path
         The path to the directory where subcortical .vtk meshes have been saved (normally, "sub_surfaces/sub-[id]".
     vol_color_map : str
-        Name of the color map to be assigned (in alphabetical order) to the background volume, as listed in matplotlib's colormaps. Default is outline_color_map.
+        Name of the color map to be assigned to the background volume, as listed in matplotlib's colormaps. Default is "gray".
     outline_color_map : str
         Name of the color map to be assigned (in alphabetical order) to the subcortical surface outlines, as listed in matplotlib's colormaps. Default is "tab20".
     """

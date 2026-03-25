@@ -170,3 +170,44 @@ merge_all(
 The mesh is saved in the sub_surfaces/ subject directories, e.g. allaseg_thickness.vtk for fsaverage based surfaces. The plotter lets you visualise the outcome of the merging:
 
 ![](figures/merged.png)
+
+### Statistical analyses
+
+Users can run statistical analyses on the surface-based metrics with any potential software that can work with .vtk meshes and read their metrics scalars. SubCortexMesh provides a small wrapper for [BrainStat's SLM analysis tools](https://brainstat.readthedocs.io/en/master/python/tutorials/tutorial_1.html#python-tutorial1), which fit linear or linear mixed models with surface-based values. 
+
+The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a selected region and metric, and appending them into a single numpy array (N subjects x V vertices), as well as automatically providing a template data (from the toolbox_datapath). Here is an example:
+
+``` python
+import pandas as pd
+from brainstat.stats.terms import FixedEffect
+from subcortexmesh import slm_model, slm_plot
+#hypothetical behavioural data 
+beh_data = pd.read_csv("participants.tsv", sep="\t")
+beh_data = beh_data.dropna(subset=['age'])
+#prepare model as per BrainStat's terms system
+model = FixedEffect(beh_data['age']) 
+contrast = beh_data['age']
+#Testing the effect of age on left-thalamus thickness
+slm_model = slm_analysis(
+    inputdir="surface_metrics/",
+    template='fsaverage',
+    metric='thickness',
+    roilabel='left-thalamus',
+    model=model,
+    contrast=contrast,
+    correction=["fdr", "rft"],
+    cluster_threshold=0.05,
+    smooth=5, #optional smoothing FMHW
+    sub_list=beh_data['participant_id'] #optional inclusion list to avoid mismatching model and surface data
+)
+```
+
+Once the analysis is complete, the outputted maps can be visualised as follows:
+
+``` python
+slm_plot(slm_model, 'clusters') #significant cluster map
+```
+
+![](figures/rft_cluster_ageeffect.png)
+
+More advanced sets of analysis and plotting tools, including BrainStat's SLM as well as threshold-free cluster enhancement cluster analyses, are available in the R package [VertexWiseR](https://github.com/CogBrainHealthLab/VertexWiseR), which is able to [extract](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_surface_extraction.html) and [analyse](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_Example_3.html) outputs from SubCortexMesh.

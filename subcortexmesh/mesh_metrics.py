@@ -12,7 +12,7 @@ import os
 import re
 from sklearn.decomposition import PCA
 from scipy.spatial.transform import Rotation
-from typing import Optional, Union, List
+from typing import Optional, Union, Sequence
 from pathlib import Path
 from subcortexmesh import template_data_fetch
 
@@ -21,15 +21,15 @@ def mesh_metrics(
     outputdir: Union[str, Path],
     template: str,
     toolboxdata: Optional[Union[str, Path]] = None,
-    metric: Union[str, List[str]] = ['thickness', 'curvature', 'surfarea'],
-    roilabel: Union[str, List[str]] = ['left-cerebellum-cortex', 'right-cerebellum-cortex', 
+    metric: Union[str, Sequence[str]] = ['thickness', 'curvature', 'surfarea'],
+    roilabel: Union[str, Sequence[str]] = ['left-cerebellum-cortex', 'right-cerebellum-cortex', 
                                        'left-pallidum', 'right-pallidum', 'left-putamen', 'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala', 'right-amygdala', 'left-hippocampus','right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', 'brain-stem'],
-    smooth: List[int] = [0, 5, 5],
-    plot_medial_curve=False,
-    plot_projection=False,
-    native_meshes=False,
-    overwrite=True,
-    silent=False,
+    smooth: tuple[int, int, int] = [0, 5, 5],
+    plot_medial_curve: bool = False,
+    plot_projection: bool = False,
+    native_meshes: bool = False,
+    overwrite: bool = True,
+    silent: bool = False,
     ):
     """Thickness and surface area computation
     
@@ -72,16 +72,14 @@ def mesh_metrics(
         The path of the "subcortexmesh_data" package data directory. The  default path 
         is assumed to be the user's home directory (pathlib's Path.home()). Users will 
         be prompted to download it if not found.
-    metric: str, list
-        The name(s) of the metric(s) to be computed. Options are "thickness", "curvature",
-        "surfarea", and default is all of them.
-    roilabel: str, list
-        The name(s) of the region(s)-of-interest to be computed. Default is all subcortices
-        across all segmentation templates: 'left-cerebellum-cortex', 'right-cerebellum-cortex', 
-        'left-pallidum', 'right-pallidum', 'left-putamen', 'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala',  'right-amygdala', 'left-hippocampus',
-        'right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 
-        'right-caudate', 'left-ventraldc', 'right-ventraldc', and 'brain-stem'.
-    smooth : list
+    metric: str, Sequence
+        The name(s) of the metric(s) to be computed as strings. Options are "thickness", 
+        "curvature", "surfarea", and default is all of them.
+    roilabel: str, Sequence
+        The name(s) of the region(s)-of-interest to be computed as strings. Default is all
+        subcortices across all segmentation templates: 'left-cerebellum-cortex', 'right-cerebellum-cortex', 'left-pallidum', 'right-pallidum', 'left-putamen', 
+        'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala',  'right-amygdala', 'left-hippocampus', 'right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', and 'brain-stem'.
+    smooth : tuple
         The full-maximum half-width (FMHW) values that will be applied for smoothing 
         each surface-based measure along the surface. In the following order: 
         thickness, surface area, curvature. 0 means no smoothing is applied.

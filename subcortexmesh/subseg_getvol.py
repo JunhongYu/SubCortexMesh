@@ -16,10 +16,10 @@ import numpy as np
 def subseg_getvol(
     inputdir: Union[str, Path],
     outputdir: Union[str, Path],
+    template: str,
     toolboxdata: Optional[Union[str, Path]] = None,
-    template=str,
-    overwrite=True,
-    silent=False,
+    overwrite: bool = True,
+    silent: bool = False,
     ):
     """Extracting and coregistering subcortical volumes from a cohort's subcortical volumes
     

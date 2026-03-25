@@ -6,6 +6,8 @@ from subcortexmesh.vol2surf import (vol2surf)
 from subcortexmesh.mesh_metrics import (mesh_metrics)
 from subcortexmesh.merge_all import (merge_all)
 from subcortexmesh.surf_qcplot import (surf_qcplot)
+from subcortexmesh.stat_tools import (slm_analysis)
+from subcortexmesh.stat_tools import (slm_plot)
 
 __all__ = [
     "template_data_fetch",
@@ -13,5 +15,7 @@ __all__ = [
     "vol2surf",
     "mesh_metrics",
     "merge_all",
-    "surf_qcplot"
+    "surf_qcplot",
+    "slm_analysis",
+    "slm_plot"
 ]

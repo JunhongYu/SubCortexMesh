@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd 
 import os
 import vtk
-from typing import Optional, Union, List
+from typing import Optional, Union, Sequence
 from pathlib import Path
 from subcortexmesh import template_data_fetch
 
@@ -14,10 +14,10 @@ def merge_all(
     inputdir: Union[str, Path],
     template: str,
     toolboxdata: Optional[Union[str, Path]] = None,
-    metric: Union[str, List[str]] = ['thickness', 'curvature', 'surfarea'],
-    plot_merged=False,
-    overwrite=True,
-    silent=False,
+    metric: Union[str, Sequence[str]] = ['thickness', 'curvature', 'surfarea'],
+    plot_merged: bool = False,
+    overwrite: bool = True,
+    silent: bool = False,
 ):
     """Merging all subcortical outputs into a single surface object
     
@@ -44,9 +44,9 @@ def merge_all(
         The path of the "subcortexmesh_data" package data directory. The  default path 
         is assumed to be the user's home directory (pathlib's Path.home()). Users will 
         be prompted to download it if not found.
-    metric: str, list
-        The name(s) of the metric(s) to be computed. Options are "thickness", "curvature",
-        "surfarea", and default is all of them.
+    metric: str, Sequence
+        The name(s) of the metric(s) to be computed as strings. Options are "thickness", 
+        "curvature", "surfarea", and default is all of them.
     plot_merged: bool
         Whether to plot the resulting merged mesh. Default is False.
     overwrite : bool
