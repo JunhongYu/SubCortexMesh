@@ -1,8 +1,18 @@
 # Configuration file for the Sphinx documentation builder.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os
+from unittest.mock import MagicMock
 import sys
+import os
+
+MOCK_MODULES = [
+    'ants', 'antspyx', 'pyvista', 'vtk', 'sklearn',
+    'sklearn.preprocessing', 'sklearn.neighbors',
+]
+
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = MagicMock()
+
 sys.path.insert(0, os.path.abspath('../..')) #sphinx access
 
 # -- Project information -----------------------------------------------------

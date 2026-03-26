@@ -22,7 +22,7 @@ The toolbox automatically converts a subjects directory's subcortical segmentati
 
 -   Saves descriptive statistics for each ROI in a table for each subject and metric.
 
--   Aligns subject meshes and projects their vertex-wise values to a standard template-based surface, based on fsaverage for FreeSurfer outputs,[^readme-1] and MNI152 for FSL FIRST outputs[^readme-2]. The native space meshes, with their associated scalar metrics, can also be saved.
+-   Aligns subject meshes and projects their vertex-wise values to a standard template-based surface, based on fsaverage/MNI305 for FreeSurfer outputs,[^readme-1] and MNI152 for FSL FIRST outputs[^readme-2]. The native space meshes, with their associated scalar metrics, can also be saved.
 
 [^readme-1]: The fsaverage/MNI305 surface-based templates for each ROI have been produced by using SubCortexMesh's own functions (subseg_getvol(), vol2surf()) with default parameters, on the fsaverage template's own aseg.mgz in FreeSurfer 7.4.1 (\$FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz).
 
