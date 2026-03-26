@@ -26,7 +26,7 @@ extensions = [
     'sphinx.ext.autodoc',       # auto-generates docs from docstrings
     'sphinx.ext.napoleon',      # supports Google/NumPy-style docstrings
     'sphinx.ext.viewcode',      # adds [source] links
-    'nbsphinx',                 # renders Jupyter notebooks as tutorials
+    'myst_parser',  # lets Sphinx read .md files
 ]
 
 templates_path = ['_templates']
@@ -35,3 +35,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': False,
+    'show-inheritance': True,
+}
