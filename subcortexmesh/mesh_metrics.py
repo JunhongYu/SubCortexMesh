@@ -156,10 +156,6 @@ def mesh_metrics(
                     if not silent: 
                         print("   Generating a medial curve...")
                     
-                    
-                    #for fslfirst brain-stem, need to rotate it as Y is 90 isn't right
-                    
-                    
                     def extract_medial_curve(mesh, n_slices=100):
                         #make array of vertices 3D coordinates
                         points = np.array([mesh.GetPoint(i) for i in range(mesh.GetNumberOfPoints())])

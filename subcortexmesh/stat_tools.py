@@ -146,7 +146,8 @@ def slm_plot(
     stat: str, 
     threshold: Optional[float] = None, 
     cmap: str = 'RdBu_r', 
-    clim: Optional[Tuple[float, float]] = None
+    clim: Optional[Tuple[float, float]] = None,
+    smooth_mesh:  Optional[int] = 0
     ):
     """
     Plot SLM result maps on their respective surface.
@@ -156,7 +157,7 @@ def slm_plot(
     slm: SLM object
         BrainStat SLM object containing the statistical outputs.
     stat: str
-        Map to plot from the SLM object - 't' for t-statistics map, 'p_fdr' for the false discovery rate-corrected p-value map, 'p_rft' for the random field theory cluster corrected p-values, or 'clusters' for the clusters.
+        Map to plot from the SLM object - 't' for the t-statistics map, 'p_fdr' for the false discovery rate-corrected p-value map, 'p_rft' for the random field theory cluster corrected p-values, or 'clusters' for the clusters.
     threshold: float, optional
         Thresholding value in which vertices are to be plotted (below the threshold for p-value
         and clusters maps, or above the set threshold for t-statistics map).
@@ -166,11 +167,25 @@ def slm_plot(
         Sequence of float stating the minimum and maximum value of the color bar. Default is 
         minimum and maximum value for the t-statitics maps, 0 to 0.05 for the p-value maps. It
         is not applied for the clusters maps as colour values follow cluster IDs.
+    smooth_mesh: int, optional
+        Number of iterations of smoothing to make the surface appear smoother. Default is 0.
     """
     
     #load mesh
     mesh = pv.wrap(slm.surf.VTKObject)  
     
+    #appearance smoother
+    if smooth_mesh is not None: 
+        mesh=slm.surf.VTKObject 
+        s = vtk.vtkWindowedSincPolyDataFilter()
+        s.SetInputData(mesh)
+        s.SetNumberOfIterations(smooth_mesh)
+        s.SetPassBand(0.001)
+        s.NonManifoldSmoothingOn()
+        s.NormalizeCoordinatesOn()
+        s.Update()
+        mesh=pv.wrap(s.GetOutput())
+      
     #add scalar values from SLM's maps:
     #t statistics
     if stat == 't':
@@ -224,7 +239,7 @@ def slm_plot(
         clim = None
         title = 'Significant clusters'
     else:
-        raise ValueError(f"'{stat}' is not applicable. Choose from: 't', 'p', 'p_fdr', 'p_rft', 'clusters'")
+        raise ValueError(f"'{stat}' is not applicable. Choose from: 't', 'p_fdr', 'p_rft', 'clusters'")
     
     #threshold
     if threshold is not None:

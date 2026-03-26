@@ -8,6 +8,8 @@ This toolbox provides commands for surface based measures of subcortical segment
 
 ## Workflow
 
+![](figures/SCM_flowchart.png)
+
 The toolbox automatically converts a subjects directory's subcortical segmentation volumes to 3D surface meshes. SubCortexMesh:
 
 -   Rigidly coregisters subject-space volumes to a template space (MNI). It solely does rotation and no interpolation to preserve subject-space dimensions.
@@ -175,7 +177,7 @@ The mesh is saved in the sub_surfaces/ subject directories, e.g. allaseg_thickne
 
 Users can run statistical analyses on the surface-based metrics with any potential software that can work with .vtk meshes and read their metrics scalars. SubCortexMesh provides a small wrapper for [BrainStat's SLM analysis tools](https://brainstat.readthedocs.io/en/master/python/tutorials/tutorial_1.html#python-tutorial1), which fit linear or linear mixed models with surface-based values. 
 
-The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a selected region and metric, and appending them into a single numpy array (N subjects x V vertices), as well as automatically providing a template data (from the toolbox_datapath). Here is an example:
+The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a selected region and metric, and appending them into a single numpy array (N subjects x V vertices), as well as automatically providing a template data (from the toolbox_datapath). The other arguments are that of the SLM function. Here is an example:
 
 ``` python
 import pandas as pd
@@ -202,12 +204,20 @@ slm_model = slm_analysis(
 )
 ```
 
-Once the analysis is complete, the outputted maps can be visualised as follows:
+Once the analysis is complete, the outputted maps in the SLM object (here slm_model) can be visualised as follows:
 
 ``` python
-slm_plot(slm_model, 'clusters') #significant cluster map
+slm_plot(
+  slm=slm_model, 
+  stat='clusters',
+  cmap='RdBu_r',
+  #threshold= .05,
+  #smooth_mesh=0
+  )
 ```
 
 ![](figures/rft_cluster_ageeffect.png)
+
+Other options for the "stat" argument include 't' for the t-statistics map, 'p_fdr' for the false discovery rate-corrected p-value map, 'p_rft' for the random field theory cluster corrected p-values.
 
 More advanced sets of analysis and plotting tools, including BrainStat's SLM as well as threshold-free cluster enhancement cluster analyses, are available in the R package [VertexWiseR](https://github.com/CogBrainHealthLab/VertexWiseR), which is able to [extract](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_surface_extraction.html) and [analyse](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_Example_3.html) outputs from SubCortexMesh.
