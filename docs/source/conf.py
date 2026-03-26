@@ -1,17 +1,9 @@
 # Configuration file for the Sphinx documentation builder.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-from unittest.mock import MagicMock
 import sys
 import os
-
-MOCK_MODULES = [
-    'ants', 'antspyx', 'pyvista', 'vtk', 'sklearn',
-    'sklearn.preprocessing', 'sklearn.neighbors',
-]
-
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = MagicMock()
+import shutil
 
 sys.path.insert(0, os.path.abspath('../..')) #sphinx access
 
@@ -23,10 +15,41 @@ release = '0.0.1'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
-    'sphinx.ext.autodoc',       # auto-generates docs from docstrings
-    'sphinx.ext.napoleon',      # supports Google/NumPy-style docstrings
-    'sphinx.ext.viewcode',      # adds [source] links
-    'myst_parser',  # lets Sphinx read .md files
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'myst_parser',
+]
+
+autodoc_mock_imports = [
+    'ants',
+    'antspyx',
+    'pyvista',
+    'vtk',
+    'vtkmodules',
+    'vtkmodules.vtkFiltersGeneral',
+    'vtkmodules.vtkRenderingCore',
+    'numpy',
+    'pandas',
+    'nibabel',
+    'scipy',
+    'scipy.spatial',
+    'scipy.spatial.transform',
+    'sklearn',
+    'sklearn.decomposition',
+    'brainstat',
+    'brainstat.stats',
+    'brainstat.stats.SLM',
+    'brainstat._typing',
+    'brainstat.mesh',
+    'brainstat.mesh.data',
+    'brainspace',
+    'brainspace.mesh',
+    'brainspace.mesh.mesh_io',
+    'matplotlib',
+    'matplotlib.pyplot',
+    'matplotlib.widgets',
+    'requests',
 ]
 
 templates_path = ['_templates']
@@ -41,3 +64,9 @@ autodoc_default_options = {
     'undoc-members': False,
     'show-inheritance': True,
 }
+
+# Copy figures into the build path so README links resolve
+figures_src = os.path.abspath('../../figures')
+figures_dst = os.path.abspath('figures')
+if os.path.exists(figures_src) and not os.path.exists(figures_dst):
+    shutil.copytree(figures_src, figures_dst)
