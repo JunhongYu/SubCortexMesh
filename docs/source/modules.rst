@@ -1,5 +1,5 @@
 subcortexmesh
-=============
+========================
 
 .. toctree::
    :maxdepth: 4

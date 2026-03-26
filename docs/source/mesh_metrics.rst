@@ -1,5 +1,5 @@
 mesh_metrics
-=========
+========================
 
 .. automodule:: subcortexmesh.mesh_metrics
    :members:

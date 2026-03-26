@@ -1,4 +1,4 @@
-<img src="figures/hexlogo.png" alt="logo" align="right" style="float:right; height:200px;"/>
+<img src="https://raw.githubusercontent.com/chabld/SubCortexMesh/main/figures/hexlogo.png" alt="logo" align="right" style="float:right; height:200px;"/>
 
 # SubCortexMesh
 

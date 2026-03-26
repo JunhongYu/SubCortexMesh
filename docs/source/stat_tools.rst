@@ -1,7 +1,7 @@
-vol2surf
+stat_tools
 ========================
 
-.. automodule:: subcortexmesh.vol2surf
+.. automodule:: subcortexmesh.stat_tools
    :members:
    :undoc-members:
    :show-inheritance:
