@@ -21,6 +21,10 @@ extensions = [
     'myst_parser',
 ]
 
+myst_enable_extensions = [
+    "footnote",
+]
+
 autodoc_mock_imports = [
     'ants',
     'antspyx',
