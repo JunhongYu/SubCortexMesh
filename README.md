@@ -22,11 +22,11 @@ The toolbox automatically converts a subjects directory's subcortical segmentati
 
 -   Saves descriptive statistics for each ROI in a table for each subject and metric.
 
--   Aligns subject meshes and projects their vertex-wise values to a standard template-based surface, based on fsaverage/MNI305 for FreeSurfer outputs,[^readme-1] and MNI152 for FSL FIRST outputs[^readme-2]. The native space meshes, with their associated scalar metrics, can also be saved.
+-   Aligns subject meshes and projects their vertex-wise values to a standard template-based surface, based on fsaverage/MNI305 for FreeSurfer outputs,[^1] and MNI152 for FSL FIRST outputs[^2]. The native space meshes, with their associated scalar metrics, can also be saved.
 
-[^readme-1]: The fsaverage/MNI305 surface-based templates for each ROI have been produced by using SubCortexMesh's own functions (subseg_getvol(), vol2surf()) with default parameters, on the fsaverage template's own aseg.mgz in FreeSurfer 7.4.1 (\$FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz).
+[^1]: The fsaverage/MNI305 surface-based templates for each ROI have been produced by using SubCortexMesh's own functions (subseg_getvol(), vol2surf()) with default parameters, on the fsaverage template's own aseg.mgz in FreeSurfer 7.4.1 (\$FREESURFER_HOME/subjects/fsaverage/mri/aseg.mgz).
 
-[^readme-2]: The fslfirst/MNI152 surface-based templates for each ROI have also been produced by using SubCortexMesh's own functions (subseg_getvol(), vol2surf()) with the same parameters (except smoothing=20). The segmentations volumes were obtained using FSL v.6.0.6's own probabilistic models (.bmv files in \$FSLDIR/data/first/models_336_bin/) on the standard MNI 152 1mm T1w volume (\$FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz). Cerebellar meshes were produced using [run_first](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage), with "-n 40" modes, using the putamen intensities to normalise its intensity sample as recommended by the latter's documentation.
+[^2]: The fslfirst/MNI152 surface-based templates for each ROI have also been produced by using SubCortexMesh's own functions (subseg_getvol(), vol2surf()) with the same parameters (except smoothing=20). The segmentations volumes were obtained using FSL v.6.0.6's own probabilistic models (.bmv files in \$FSLDIR/data/first/models_336_bin/) on the standard MNI 152 1mm T1w volume (\$FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz). Cerebellar meshes were produced using [run_first](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage), with "-n 40" modes, using the putamen intensities to normalise its intensity sample as recommended by the latter's documentation.
 
 ## Installation
 
@@ -67,11 +67,11 @@ Notes:
 
 -   SubCortexMesh follows the sub-\*\*\* convention for participant IDs and will only account for folders with names that contain such IDs.
 
--   In FSL FIRST, optional [cerebellar surfaces](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) also need to be named \**L-Cereb_first.nii.gz* and \**R-Cereb_first.nii.gz*.[^readme-3]
+-   In FSL FIRST, optional [cerebellar surfaces](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) also need to be named \**L-Cereb_first.nii.gz* and \**R-Cereb_first.nii.gz*.[^3]
 
 -   The coregistration requires T1 volumes to be present for each subject: it should be stored as [sub-ID]/mri/T1.mgz for FreeSurfer and stored in the same "inputdir" path for FSL FIRST (the function will search for files containing the sub-ID and "T1w.nii" for each subject).
 
-[^readme-3]: Cerebellar segmentations can be done in FSL with the following commands (do the same for `L_Cereb`):\
+[^3]: Cerebellar segmentations can be done in FSL with the following commands (do the same for `L_Cereb`):\
     `first_flirt [subject's T1file] "[subject's subdirectory]/[sub-id]" -cort`\
     `run_first -i [subject's T1file] \           -t "[``subject's subdirectory``]/[sub-id_cort.mat]" \           -n 40 \ -o "[``subject's subdirectory``]/[sub-id]-R_Cereb_first" \           -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \            -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"` \
     \

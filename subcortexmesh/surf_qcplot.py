@@ -19,7 +19,7 @@ def surf_qcplot(
     """Plotting subject surface boundaries on top of matching volume
     
     This function function will plot all surfaces generated with vol2surf() for a given subject (normally stored in "sub_surfaces/sub-[id]/") and plot their boundaries on top of a selected .nii volume Because the surfaces are based on a volume rigidly coregistered to a template, the surfaces will match a volume generated with subseg_getvol(), i.e.  "sub_volumes/sub-[id]/ants_coreg/T1_[template]_rigid_coreg.nii.gz" (or any volume likewise coregistered).   
-. 
+    
     Note that as per subseg_getvol(), individual regions-of-interest (ROIs) will have been inflated and smoothed by default to minimise graphical artefacts, which will naturally be reflected in the plot: regions will appear with slightly wider boundaries than their original anatomy. Another logical result is that ROI boundaries will appear overlapping, but since the surfaces are processed by SubCortexMesh entirely separately, this has no effect on the metrics values (ROIs overlapping here cannot be mixed up in their calculation by mesh_metrics() or merge_all()).
     
     Parameters

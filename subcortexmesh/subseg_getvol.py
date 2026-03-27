@@ -43,7 +43,7 @@ def subseg_getvol(
     #        -t "[subject_directory]/[sub-id_cort.mat]" \
     #        -n 40 \
     #        -o "[subject_directory]/[sub-id]-R_Cereb_first" \
-    #        -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
+    #       -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
     #        -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"       
     
     Parameters
