@@ -35,10 +35,10 @@ def mesh_metrics(
     
     This function extract thickness and surface area metrics from subcortical
     surface objects outputted in "sub_surfaces", via the following steps:
+    
     - It renders medial curves, i.e. singular lines spanning the "core" of the meshes, between its two polar axes (estimated with principal component analysis)
     - The medial curve is used to align the subject mesh to the template mesh 
-    - Thickness is measured as each surface vertex's distance from the curve 
-    (i.e., the radial distance between the surface and the center of the mesh)
+    - Thickness is measured as each surface vertex's distance from the curve (i.e., the radial distance between the surface and the center of the mesh)
     - Surface area is measured as the sum of the area of all triangles a given  vertex belongs to, divided by 3. By default, a Gaussian (FWHM=5) smoothing is applied. 
     - Curvature is the mean curvature from vtkCurvatures, which indicates how bent is the surface at a each vertex, with higher mean curvature meaning more concave surface and lower convex. By default, a Gaussian (FWHM=5) smoothing is applied. 
     - Optional (native_meshes, disabled by default): meshes with their thickness and surface area scalar values can be saved in native subject space, before projection.

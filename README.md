@@ -71,10 +71,16 @@ Notes:
 
 -   The coregistration requires T1 volumes to be present for each subject: it should be stored as [sub-ID]/mri/T1.mgz for FreeSurfer and stored in the same "inputdir" path for FSL FIRST (the function will search for files containing the sub-ID and "T1w.nii" for each subject).
 
-[^3]: Cerebellar segmentations can be done in FSL with the following commands (do the same for `L_Cereb`):\
-    `first_flirt [subject's T1file] "[subject's subdirectory]/[sub-id]" -cort`\
-    `run_first -i [subject's T1file] \           -t "[``subject's subdirectory``]/[sub-id_cort.mat]" \           -n 40 \ -o "[``subject's subdirectory``]/[sub-id]-R_Cereb_first" \           -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \            -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"` \
-    \
+[^3]: Cerebellar segmentations can be done in FSL with the following commands (do the same for `L_Cereb`):
+```bash
+    first_flirt [subject's T1file] "[subject's subdirectory]/[sub-id]" -cort
+    run_first -i [subject's T1file] \
+        -t "[subject's subdirectory]/[sub-id_cort.mat]" \
+        -n 40 \
+        -o "[subject's subdirectory]/[sub-id]-R_Cereb_first" \
+        -m "${FSLDIR}/data/first/models_336_bin/intref_puta/R_Cereb.bmv" \
+        -intref "${FSLDIR}/data/first/models_336_bin/05mm/R_Puta_05mm.bmv"
+```
     The putamen used as the intensity reference is what is indicated by [FSL FIRST's documentation](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/first.html#advanced-usage) and 40 is just the number of modes used for most ROIs.
 
 ### Converting volumes to surfaces
