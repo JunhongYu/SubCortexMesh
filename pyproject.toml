@@ -18,7 +18,7 @@ authors = [
   {name = "Charly H. A. Billaud", email = "charly.billaud@ntu.edu.sg"},
 ]
 readme = "README.md"
-license = "GPL-3.0-only"
+license = "GPL-3.0-or-later"
 
 [project.urls]
 Repository = "https://github.com/chabld/SubCortexMesh"
