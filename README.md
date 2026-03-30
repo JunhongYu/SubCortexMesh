@@ -181,7 +181,9 @@ The mesh is saved in the sub_surfaces/ subject directories, e.g. allaseg_thickne
 
 Users can run statistical analyses on the surface-based metrics with any potential software that can work with .vtk meshes and read their metrics scalars. SubCortexMesh provides a small wrapper for [BrainStat's SLM analysis tools](https://brainstat.readthedocs.io/en/master/python/tutorials/tutorial_1.html#python-tutorial1), which fit linear or linear mixed models with surface-based values. 
 
-The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a selected region and metric, and appending them into a single numpy array (N subjects x V vertices), as well as automatically providing a template data (from the toolbox_datapath). The other arguments are that of the SLM function. Here is an example:
+The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a selected region and metric, and appending them into a single numpy array (N subjects x V vertices). The collated meshes are ordered alphanumerically according to the subject IDs of the surface_metrics/ subfolders, so users need to make sure their model/contrast variables match that order too.
+
+The other arguments are that of the SLM function. Here is an example:
 
 ``` python
 import pandas as pd

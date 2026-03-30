@@ -3,6 +3,7 @@
 
 import vtk
 from vtk.util import numpy_support
+import re
 import numpy as np
 import pyvista as pv
 from typing import Optional, Union, Sequence, Tuple
@@ -38,9 +39,10 @@ def slm_analysis(
     https://brainstat.readthedocs.io/en/master/python/tutorials/tutorial_1.html
     
     slm_analysis() automatically collates surface-based measures in template space from a 
-    surface_metrics/ folder produced by mesh_metrics() (or equivalent folder), and fits 
-    them as the "surf" argument in BrainStat. The model returns t-statistics, p-values,
-    and Random field theory clusters map for a selected contrast. 
+    surface_metrics/ folder produced by mesh_metrics() (or equivalent folder), in
+    alphanumeric order of the subjects' subfolders, and fits them as the "surf" 
+    argument in BrainStat. The model returns t-statistics, p-values,and Random field theory 
+    clusters map for a selected contrast. 
     
     Parameters
     ----------
@@ -75,8 +77,6 @@ def slm_analysis(
     cluster_threshold : float, optional
         P-value threshold or statistic threshold for defining clusters in
         random field theory, by default 0.001.
-    p: float
-        A float numeric value specifying the p-value to threshold the results (Default is 0.05)
     smooth : float, optional
         The full-maximum half-width (FMHW) value that will be applied for smoothing 
         of the surface-based measure along the surface. Default is None.
@@ -92,11 +92,15 @@ def slm_analysis(
     """
     
     #collate surface matrices from the outputdir at that metric and specific metric
-    mesh_list = list(Path(inputdir).rglob(f'*{roilabel}_{metric}.vtk'))
+    #sorted alphanumerically via sub-ID
+    mesh_list = sorted(
+    Path(inputdir).rglob(f'*{roilabel}_{metric}.vtk'),
+    key=lambda p: (m := re.search(r'sub-\w+', str(p))) and m.group() or ''
+    )
     
     if len(mesh_list) <= 0:
         raise FileNotFoundError(f"No surface file for {roilabel} {metric} found.")
-    
+      
     surf_data=[]
     for mesh in mesh_list:
         reader = vtk.vtkPolyDataReader()
@@ -124,7 +128,7 @@ def slm_analysis(
     #mask out zero values (vertices with no data across subjects)
     if mask is None:
         mask = np.ones(surf_data.shape[1], dtype=bool)
-        mask[np.where(surf_data.sum(axis=0) == 0)] = False
+        mask[np.all(surf_data == 0, axis=0)] = False
     
     #apply model on surf data
     slm_model = SLM(
@@ -180,7 +184,7 @@ def slm_plot(
     mesh = pv.wrap(slm.surf.VTKObject)  
     
     #appearance smoother
-    if smooth_mesh is not None: 
+    if smooth_mesh is not None and smooth_mesh > 0:
         mesh=slm.surf.VTKObject 
         s = vtk.vtkWindowedSincPolyDataFilter()
         s.SetInputData(mesh)
@@ -247,7 +251,7 @@ def slm_plot(
         raise ValueError(f"'{stat}' is not applicable. Choose from: 't', 'p_fdr', 'p_rft', 'clusters'")
     
     #threshold
-    if threshold is not None:
+    if threshold is not None and stat != 'clusters':
         if stat == 't':
             mask = np.abs(scalars) < threshold
         else:  # p-values: mask above threshold
