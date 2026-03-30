@@ -15,7 +15,6 @@ from brainspace.mesh import mesh_io
 
 def slm_analysis(
     inputdir: Union[str, Path],
-    template: str,
     metric: Union[str, Sequence[str]],
     roilabel: str,
     model: ArrayLike, 
@@ -44,15 +43,15 @@ def slm_analysis(
     argument in BrainStat. The model returns t-statistics, p-values,and Random field theory 
     clusters map for a selected contrast. 
     
+    Note for SLM: The first surface is used as "template" given it works for template-space
+    surfaces.
+    
     Parameters
     ----------
     inputdir : str, Path
         The surface_metrics/ directory where the surface-based metrics were outputted 
         (using mesh_metrics()) or a directory with the same tree structure (subject folders,
         each with metrics .vtk files inside).
-    template: str
-        The name of the template the surfaces are supposed to be matching to. For FreeSurfer
-        outputs, it is 'fsaverage'. For FSL FIRST, it is 'fslfirst'.
     roilabel: str
         The name of the region-of-interest to analyse (one at a time): 'left-cerebellum-cortex', 'right-cerebellum-cortex', 'left-pallidum', 'right-pallidum', 'left-putamen', 
         'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala',  'right-amygdala', 'left-hippocampus', 'right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', and 'brain-stem'.
@@ -122,7 +121,7 @@ def slm_analysis(
         surf_data = surf_data[keep_idx, :]
     
     #apply smoothing if applicable
-    if smooth is not None:
+    if smooth is not None and smooth > 0:
         surf_data=mesh_smooth(surf_data.copy(), surf_template, smooth)
     
     #mask out zero values (vertices with no data across subjects)

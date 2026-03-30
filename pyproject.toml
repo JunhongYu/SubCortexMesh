@@ -11,7 +11,8 @@ dependencies = [
   "antspyx>=0.6.2",
   "pyvista>=0.46.4",
   "scikit-learn>=1.7.2",
-  "vtk>=9.5.2"
+  "vtk>=9.5.2",
+  "brainstat>=0.4.2",
 ]
 requires-python = ">=3.10.19"
 authors = [
