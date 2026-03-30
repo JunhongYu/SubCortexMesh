@@ -37,8 +37,10 @@ def template_data_fetch(
     
     if template=='fsaverage':
         template_data_size='11.7 MB'
-    if template=='fslfirst':
+    elif template=='fslfirst':
         template_data_size='8.8 MB'
+    else:
+        raise ValueError(f"Unknown template '{template}'. Options are 'fsaverage' or 'fslfirst'.")
     
     if not os.path.exists(f"{toolboxdatadir}/template_data/{template}"):
         #prompts
@@ -50,18 +52,20 @@ def template_data_fetch(
         
         print(options)
         while True:
-           choice = input("\nResponse:")
-           if choice in ("1", options[0]):
-               print(f"Saving the 'subcortexmesh_data' data directory in {homedir}.")
-               break
-           elif choice in ("2", options[1]):
-               userpath=input("Please enter the path in which to download the template data:")
-               print(f"Saving the 'subcortexmesh_data' data directory in {userpath}.")
-               break               
-           elif choice in ("3", options[2]):
-               raise TypeError('The template_data must be available for this function to run.')
-           else:
-               raise TypeError('The template_data must be available for this function to run.')
+            choice = input("\nResponse:")
+            if choice in ("1", options[0]):
+                print(f"Saving the 'subcortexmesh_data' data directory in {homedir}.")
+                break
+            elif choice in ("2", options[1]):
+                userpath=input("Please enter the path in which to download the template data:")
+                toolboxdatadir=userpath
+                print(f"Saving the 'subcortexmesh_data' data directory in {userpath}.")
+                break               
+            elif choice in ("3", options[2]):
+                raise TypeError('The template_data must be available for this function to run.')
+            else:
+                print("Please enter 1, 2, or 3.")
+                continue
         
         #Template data url
         url = f"https://github.com/chabld/SubCortexMesh/raw/refs/heads/main/template_data/{template}.zip"
@@ -92,6 +96,6 @@ def urldownloader(url: str, filepath: Union[str, Path]):
             f.write(response.content)
         print(f"File downloaded successfully to {filepath}")
     else:
-        print("Failed to download file:", response.status_code)
+        raise ConnectionError(f"Failed to download file: status code {response.status_code}")
 
 
