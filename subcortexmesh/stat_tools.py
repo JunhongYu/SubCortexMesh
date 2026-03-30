@@ -118,8 +118,13 @@ def slm_analysis(
         surf_data = surf_data[keep_idx, :]
     
     #apply smoothing if applicable
-    if smooth:
-        surf_data=mesh_smooth(surf_data.copy(), surf_template, 5)
+    if smooth is not None:
+        surf_data=mesh_smooth(surf_data.copy(), surf_template, smooth)
+    
+    #mask out zero values (vertices with no data across subjects)
+    if mask is None:
+        mask = np.ones(surf_data.shape[1], dtype=bool)
+        mask[np.where(surf_data.sum(axis=0) == 0)] = False
     
     #apply model on surf data
     slm_model = SLM(
@@ -168,7 +173,7 @@ def slm_plot(
         minimum and maximum value for the t-statitics maps, 0 to 0.05 for the p-value maps. It
         is not applied for the clusters maps as colour values follow cluster IDs.
     smooth_mesh: int, optional
-        Number of iterations of smoothing to make the surface appear smoother. Default is 0.
+        Number of iterations of cosmetic smoothing to make the surface appear smoother. Default is 0.
     """
     
     #load mesh

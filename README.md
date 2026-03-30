@@ -203,7 +203,7 @@ slm_model = slm_analysis(
     contrast=contrast,
     correction=["fdr", "rft"],
     cluster_threshold=0.05,
-    smooth=5, #optional smoothing FMHW
+    smooth=5, #optional FMHW smoothing of the metric values 
     sub_list=beh_data['participant_id'] #optional inclusion list to avoid mismatching model and surface data
 )
 ```
@@ -216,7 +216,7 @@ slm_plot(
   stat='clusters',
   cmap='RdBu_r',
   #threshold= .05,
-  #smooth_mesh=0
+  #smooth_mesh=0 #cosmetic mesh smoothing
   )
 ```
 
