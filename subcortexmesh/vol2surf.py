@@ -78,12 +78,11 @@ def vol2surf(
                 if f.endswith(".nii.gz")]
             
         if len(vol_list) > 0:
-            for vol in vol_list:
+            for volfile in vol_list:
                 #path to volume
-                nifti_file=(f"{inputdir}/{subid}/{vol}") 
+                nifti_file=(f"{inputdir}/{subid}/{volfile}") 
                 #get base name to name surface the same way
-                base = re.sub(r'\.nii(\.gz)?$', '', vol)
-                os.makedirs(subdir, exist_ok=True)
+                base = re.sub(r'\.nii(\.gz)?$', '', volfile)
                 
                 if not os.path.exists(f"{subdir}/{base.lower()}.vtk") or overwrite:
                     #Load volume with VTK
@@ -121,7 +120,7 @@ def vol2surf(
                     
                     #Smooth the surface as pixellated 3D volume will make surface coarse 
                     #https://examples.vtk.org/site/Cxx/Modelling/SmoothDiscreteMarchingCubes/ default settings
-                    if isinstance(smoothing, (int, float)):
+                    if smoothing > 0:
                         passBand = 0.001
                         featureAngle = 120.0
                         smooth = vtk.vtkWindowedSincPolyDataFilter() #smoothing function

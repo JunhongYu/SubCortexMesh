@@ -87,8 +87,6 @@ def merge_all(
             tagArray.SetName("roi_id")
             tagArray.SetNumberOfTuples(meshfile.GetNumberOfPoints())
             tagArray.FillComponent(0, i)  # i = ROI index
-            meshfile.GetPointData().AddArray(tagArray)
-            
             _ = meshfile.GetPointData().AddArray(tagArray)
             appendFilter.AddInputData(meshfile)
         
@@ -96,7 +94,7 @@ def merge_all(
         merged_mesh = appendFilter.GetOutput()
         
         if plot_merged:
-            vis_merged()
+            vis_merged(measure)
         
         return merged_mesh
     
@@ -104,7 +102,7 @@ def merge_all(
     ###################################################################
     
     #plot function that plots all aseg surfaces together, and gives a slider to space them out from eachother
-    def vis_merged():
+    def vis_merged(measure):
         #spaced out
         #get all mesh 
         all_meshes = [ load_mesh(os.path.join(inputdir, subid, fname)) for fname in mesh_list ]

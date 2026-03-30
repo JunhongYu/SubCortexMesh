@@ -99,17 +99,16 @@ def subseg_getvol(
     #list subs (1st depth of inputdir, and only counted as sub folders with the right "sub-xxx" pattern)
     pattern = r'(sub-[^_]+)'
     sub_list = [f for f in next(os.walk(inputdir))[1] if re.search(pattern, f)]
-    _ = sub_list.sort()     
+    sub_list.sort()     
         
     subindex=0
     for subid in sub_list: 
         
+        #subject id reformatted and limited to sub-xxx for SCM
+        newsubid=re.search(pattern, subid).group(1) 
+            
         subindex=subindex+1
         if not silent: 
-             
-            #subject id reformatted and limited to sub-xxx for SCM
-            newsubid=re.search(pattern, subid).group(1) 
-            
             print(f"Processing {subid} ... [{subindex}/{len(sub_list)}]")
         
         #####################################################################################
@@ -118,9 +117,11 @@ def subseg_getvol(
         if not os.path.exists(f"{inputdir}/{subid}/mri/aseg.mgz") and template=='fsaverage':
             if not silent: 
                 print(f"{subid} has no aseg.mgz file in its mri/ directory.")
+            continue
         if not glob.glob(f"{inputdir}/{subid}/*all_fast_firstseg.nii.gz") and template=='fslfirst':
             if not silent: 
                 print(f"{subid} has no *all_fast_firstseg.nii.gz file in the subject directory.")
+            continue
         
         #will make a inputdirectory called "ants" in the freesurfer output for the warped volumes for tidiness
         antsdir=f"{outputdir}/sub_volumes/{newsubid}/ants_coreg"
@@ -145,10 +146,23 @@ def subseg_getvol(
             #1st depth subdirectories. The first one to be found is used
             if template=='fslfirst':
                 subvol=(glob.glob(f"{inputdir}/*{subid}*all_fast_firstseg.nii.gz") or \
-                    glob.glob(f"{inputdir}/*/*{subid}*all_fast_firstseg.nii.gz", recursive=True))[0]
+                    glob.glob(f"{inputdir}/*/*{subid}*all_fast_firstseg.nii.gz", recursive=True))
+                if subvol != []: 
+                    subvol=subvol[0]
+                else:
+                    if not silent:
+                        print(f"{subid} has no segmentation file (*all_fast_firstseg.nii.gz) file in inputdir.")
+                    continue
                 
                 T1vol=(glob.glob(f"{inputdir}/*{subid}*T1w.nii*") or \
-                    glob.glob(f"{inputdir}/*/*{subid}*T1w.nii*", recursive=True))[0]
+                    glob.glob(f"{inputdir}/*/*{subid}*T1w.nii*", recursive=True))
+                if T1vol != []:
+                    T1vol=T1vol[0]
+                else:
+                    if not silent:
+                        print(f"{subid} has no T1w file (*T1w.nii*) file in inputdir.")
+                    continue
+                
                 templatevol=f"{toolboxdata}/template_data/fslfirst/MNI152_T1_1mm_brain.nii.gz"
                 #If present, will include cerebellar volumes
                 cerebvol=(glob.glob(f"{inputdir}/*{subid}*Cereb_first.nii*") or \
@@ -215,7 +229,7 @@ def subseg_getvol(
         ##################Saving each ROI as separate volumes################################
         
         #if coregistration worked, separating each ROI from the coregistered aseg
-        if os.path.exists(segvol):
+        if segvol is not None and os.path.exists(segvol):
             
             #get volumes of each aseg subcortical region separately
             #read through lookup table, which contains aseg ROI labels, and extract their volume masks independently

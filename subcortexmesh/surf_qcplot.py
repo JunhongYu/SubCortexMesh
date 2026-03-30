@@ -88,30 +88,36 @@ def surf_qcplot(
         subplot = axes[{'sag':0,'ax':1,'cor':2}[axis]]
         subplot.clear()
         
-        for surf, color in zip(surfaces, mesh_colors):
-            #extract coordinates of intersecting mesh points
-            if axis == 'sag': #x axis
-                #load slice at that view
-                img = vol_arr[slice_idx[axis],:,:].T #slice converted to 2D Numpy array 
-                img_rot = np.rot90(img, current_rotation[axis]) #rotate coordinates 90 degrees for volume slice
-                subplot.imshow(img_rot, cmap=vol_color_map, origin="lower") #update plotter
-                #increase slider value from origin on that specific axis, relative to voxel space
-                origin=(vol.origin[0]+slice_idx['sag']*vol.spacing[0],0,0) 
-                #identify mesh coordinates at that slice and rotate separately
-                outline = surf.slice((1,0,0),origin=origin) #intersect mesh at this slice
-                meshcoords = outline.points[:, [1, 2]] #get updated coords for the moving axes
-            elif axis == 'ax': #y axis
+        #draft volume slice once
+        if axis == 'sag': #x axis
+            #load slice at that view
+            img = vol_arr[slice_idx[axis],:,:].T #slice converted to 2D Numpy array 
+            img_rot = np.rot90(img, current_rotation[axis]) #rotate coordinates 90 degrees for volume slice
+            subplot.imshow(img_rot, cmap=vol_color_map, origin="lower") #update plotter
+            #increase slider value from origin on that specific axis, relative to voxel space
+            origin=(vol.origin[0]+slice_idx['sag']*vol.spacing[0],0,0) 
+        elif axis == 'ax': #y axis
                 img = vol_arr[:,slice_idx[axis],:].T
                 img_rot = np.rot90(img, current_rotation[axis]) 
                 subplot.imshow(img_rot, cmap=vol_color_map, origin="lower") 
                 origin=(0,vol.origin[1]+slice_idx['ax']*vol.spacing[1],0)
-                outline = surf.slice((0,1,0),origin=origin)
-                meshcoords = outline.points[:, [0, 2]] 
-            elif axis == 'cor': #z axis
+        elif axis == 'cor': #z axis
                 img = vol_arr[:,:,slice_idx[axis]].T
                 img_rot = np.rot90(img, current_rotation[axis]) 
                 subplot.imshow(img_rot, cmap=vol_color_map, origin="lower") 
                 origin=(0,0,vol.origin[2]+slice_idx['cor']*vol.spacing[2])
+        
+        #plot every ROI surface on volume slice
+        for surf, color in zip(surfaces, mesh_colors):
+            #extract coordinates of intersecting mesh points
+            if axis == 'sag': #x axis
+                #identify mesh coordinates at that slice and rotate separately
+                outline = surf.slice((1,0,0),origin=origin) #intersect mesh at this slice
+                meshcoords = outline.points[:, [1, 2]] #get updated coords for the moving axes
+            elif axis == 'ax': #y axis
+                outline = surf.slice((0,1,0),origin=origin)
+                meshcoords = outline.points[:, [0, 2]] 
+            elif axis == 'cor': #z axis
                 outline = surf.slice((0,0,1),origin=origin)
                 meshcoords = outline.points[:, [0, 1]]
             
@@ -179,6 +185,8 @@ def surf_qcplot(
     fig.legend(legend_handles, legend_labels,
             loc='center left', bbox_to_anchor=(0.82, 0.45),
             ncol=1, fontsize='small')
+    
+    fig._widgets = [button_sag, slider_sag, button_ax, slider_ax, button_cor, slider_cor]
     
     mplpyplot.subplots_adjust(wspace=0.017, bottom=0.067)
     mplpyplot.show()

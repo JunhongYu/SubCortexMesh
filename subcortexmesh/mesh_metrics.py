@@ -24,7 +24,7 @@ def mesh_metrics(
     metric: Union[str, Sequence[str]] = ['thickness', 'curvature', 'surfarea'],
     roilabel: Union[str, Sequence[str]] = ['left-cerebellum-cortex', 'right-cerebellum-cortex', 
                                        'left-pallidum', 'right-pallidum', 'left-putamen', 'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala', 'right-amygdala', 'left-hippocampus','right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', 'brain-stem'],
-    smooth: tuple[int, int, int] = [0, 5, 5],
+    smooth: tuple[int, int, int] = (0, 5, 5),
     plot_medial_curve: bool = False,
     plot_projection: bool = False,
     native_meshes: bool = False,
@@ -73,8 +73,10 @@ def mesh_metrics(
         'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala',  'right-amygdala', 'left-hippocampus', 'right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', and 'brain-stem'.
     smooth : tuple
         The full-maximum half-width (FMHW) values that will be applied for smoothing 
-        each surface-based measure along the surface. In the following order: 
-        thickness, surface area, curvature. 0 means no smoothing is applied.
+        each surface-based measure along the surface. 0 means no smoothing is applied. 
+        In the following order: thickness, surface area, curvature. There should be 
+        always three floats corresponding to that order, even if some metrics are not 
+        selected in the "metric" argument.
     plot_medial_curve: bool
         Whether to plot the mesh and its computed medial curve. Default is False.
     plot_projection: bool
@@ -107,6 +109,9 @@ def mesh_metrics(
         reader.SetFileName(path)
         reader.Update()
         return reader.GetOutput()
+    
+    if len(smooth) != 3:
+        raise ValueError("The smooth argument must contain exactly 3 values corresponding to thickness, surface area, and curvature in order, even if some are ignored in the 'metric' argument.")
     
     subindex=0
     for subid in sub_list:
