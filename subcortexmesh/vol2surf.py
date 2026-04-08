@@ -7,13 +7,15 @@ import nibabel as nib
 import re
 import os
 import pyvista as pv
-from typing import Union
+from typing import Union, Sequence
 from pathlib import Path
 
 def vol2surf(
     inputdir: Union[str, Path],
     outputdir: Union[str, Path],
     dilate_erode: bool = True,
+    roilabel: Union[str, Sequence[str]] = ['left-cerebellum-cortex', 'right-cerebellum-cortex', 
+                                    'left-pallidum', 'right-pallidum', 'left-putamen', 'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala', 'right-amygdala', 'left-hippocampus','right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', 'brain-stem'],
     smoothing: int = 15,
     plot_volnext2surf: bool = False,
     overwrite: bool = True,
@@ -39,6 +41,10 @@ def vol2surf(
     outputdir : str, Path
         The path where subcortical meshes will be saved (creates the "sub_surfaces" 
         directory inside the path).
+    roilabel: str, Sequence
+        The name(s) of the region(s)-of-interest to be computed as strings. Default is all
+        subcortices across all segmentation templates: 'left-cerebellum-cortex', 'right-cerebellum-cortex', 'left-pallidum', 'right-pallidum', 'left-putamen', 
+        'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala',  'right-amygdala', 'left-hippocampus', 'right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', and 'brain-stem'.
     dilate_erode : bool
         Uses vtkImageDilateErode3D to slightly erode and dilate the volume before conversion, 
         which helps unify sparse voxels and produce smooth vertices. Default is True.
@@ -83,6 +89,9 @@ def vol2surf(
                 nifti_file=(f"{inputdir}/{subid}/{volfile}") 
                 #get base name to name surface the same way
                 base = re.sub(r'\.nii(\.gz)?$', '', volfile)
+                
+                if base.lower() not in roilabel:
+                    continue
                 
                 if not os.path.exists(f"{subdir}/{base.lower()}.vtk") or overwrite:
                     #Load volume with VTK
