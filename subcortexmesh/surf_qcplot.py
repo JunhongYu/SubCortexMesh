@@ -5,8 +5,10 @@ import os
 import vtk
 import pyvista as pv
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as mplpyplot
 from matplotlib.widgets import Button, Slider
+matplotlib.use('TkAgg') #matplotlib rendering backend for windows
 from typing import Optional, Union
 from pathlib import Path
 
