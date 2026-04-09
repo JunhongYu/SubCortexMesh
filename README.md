@@ -90,6 +90,7 @@ from subcortexmesh import vol2surf
 vol2surf(
     inputdir="/my_outputdir/sub_volumes",
     outputdir="/my_outputdir/",
+    #roilabel=['left-thalamus','right-thalamus'], #if one wants to only compute specific ROIs
     #dilate_erode=True,
     #smoothing=15,
     plot_volnext2surf=True,
@@ -181,7 +182,7 @@ The mesh is saved in the sub_surfaces/ subject directories, e.g. allaseg_thickne
 
 Users can run statistical analyses on the surface-based metrics with any potential software that can work with .vtk meshes and read their metrics scalars. SubCortexMesh provides a small wrapper for [BrainStat's SLM analysis tools](https://brainstat.readthedocs.io/en/master/python/tutorials/tutorial_1.html#python-tutorial1), which fit linear or linear mixed models with surface-based values. 
 
-The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a selected region and metric, and appending them into a single numpy array (N subjects x V vertices). The collated meshes are ordered alphanumerically according to the subject IDs of the surface_metrics/ subfolders, so users need to make sure their model/contrast variables match that order too.
+The slm_analysis() function facilitates the process of collating surface data by reading scalars from every surface available with a (set of) selected region(s) and one metric, and appending them into a single numpy array (N subjects x V vertices). The collated meshes are ordered alphanumerically according to the subject IDs of the surface_metrics/ subfolders, so users need to make sure their model/contrast variables match that order too.
 
 The other arguments are that of the SLM function. Here is an example:
 
@@ -198,9 +199,8 @@ contrast = beh_data['age']
 #Testing the effect of age on left-thalamus thickness
 slm_model = slm_analysis(
     inputdir="surface_metrics/",
-    template='fsaverage',
     metric='thickness',
-    roilabel='left-thalamus',
+    roilabel=['left-thalamus','right-thalamus'],
     model=model,
     contrast=contrast,
     correction=["fdr", "rft"],
@@ -216,9 +216,9 @@ Once the analysis is complete, the outputted maps in the SLM object (here slm_mo
 slm_plot(
   slm=slm_model, 
   stat='clusters',
-  cmap='RdBu_r',
+  cmap='Blues',
   #threshold= .05,
-  #smooth_mesh=0 #cosmetic mesh smoothing
+  smooth_mesh=10 #cosmetic mesh smoothing
   )
 ```
 

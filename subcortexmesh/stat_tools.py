@@ -8,15 +8,17 @@ import numpy as np
 import pyvista as pv
 from typing import Optional, Union, Sequence, Tuple
 from pathlib import Path
+from itertools import chain
+from itertools import groupby
 from brainstat.stats.SLM import SLM
 from brainstat._typing import ArrayLike
 from brainstat.mesh.data import mesh_smooth
-from brainspace.mesh import mesh_io
+from brainspace.vtk_interface.wrappers import BSPolyData
 
 def slm_analysis(
     inputdir: Union[str, Path],
     metric: Union[str, Sequence[str]],
-    roilabel: str,
+    roilabel: Union[str, Sequence[str]],
     model: ArrayLike, 
     contrast: ArrayLike, 
     mask: ArrayLike = None,
@@ -52,8 +54,8 @@ def slm_analysis(
         The surface_metrics/ directory where the surface-based metrics were outputted 
         (using mesh_metrics()) or a directory with the same tree structure (subject folders,
         each with metrics .vtk files inside).
-    roilabel: str
-        The name of the region-of-interest to analyse (one at a time): 'left-cerebellum-cortex', 'right-cerebellum-cortex', 'left-pallidum', 'right-pallidum', 'left-putamen', 
+    roilabel: str, Sequence
+        The name or array of names for the region(s)-of-interest to analyse: 'left-cerebellum-cortex', 'right-cerebellum-cortex', 'left-pallidum', 'right-pallidum', 'left-putamen', 
         'right-putamen', 'left-thalamus', 'right-thalamus','left-amygdala',  'right-amygdala', 'left-hippocampus', 'right-hippocampus', 'left-accumbens-area','right-accumbens-area','left-caudate', 'right-caudate', 'left-ventraldc', 'right-ventraldc', and 'brain-stem'.
     model : brainstat.stats.terms.FixedEffect, brainstat.stats.terms.MixedEffect
         The linear model to be fitted of dimensions (observations, predictors).
@@ -92,33 +94,51 @@ def slm_analysis(
     
     #collate surface matrices from the outputdir at that metric and specific metric
     #sorted alphanumerically via sub-ID
+    labels = [roilabel] if isinstance(roilabel, str) else roilabel
     mesh_list = sorted(
-    Path(inputdir).rglob(f'*{roilabel}_{metric}.vtk'),
+    chain.from_iterable(
+        Path(inputdir).rglob(f'*{label}_{metric}.vtk')
+        for label in labels
+    ),
     key=lambda p: (m := re.search(r'sub-\w+', str(p))) and m.group() or ''
     )
+     
+    #exclude non applicable subjects
+    if sub_list is not None:
+        mesh_list = [m for m in mesh_list if any(sub in str(m) for sub in np.asarray(sub_list))]
     
     if len(mesh_list) <= 0:
         raise FileNotFoundError(f"No surface file for {roilabel} {metric} found.")
-      
-    surf_data=[]
-    for mesh in mesh_list:
-        reader = vtk.vtkPolyDataReader()
-        reader.SetFileName(mesh)
-        reader.Update()
-        surf=reader.GetOutput()
-        _ = surf.GetPointData().SetActiveScalars(metric)
-        scalar = numpy_support.vtk_to_numpy(surf.GetPointData().GetArray(metric))
-        surf_data.append(scalar)
     
-    surf_data=np.vstack(surf_data)
+    #group meshes from mesh_list by subject to merge multiple rois
+    def getsubid(p):
+        m = re.search(r'sub-\w+', str(p))
+        return m.group() if m else ''
     
-    #template surface can simply be 1st mesh (as all surfaces are template-based)
-    surf_template=mesh_io.read_surface(str(mesh_list[0]))
+    surf_data = []
+    appender = vtk.vtkAppendPolyData()
+    for subject, subject_meshes in groupby(sorted(mesh_list, key=getsubid), key=getsubid):
+        subject_scalars = []
+        for mesh in subject_meshes:
+            #read mesh and extract metrics scalar
+            reader = vtk.vtkPolyDataReader()
+            reader.SetFileName(str(mesh))
+            reader.Update()
+            surf = reader.GetOutput()
+            _ = surf.GetPointData().SetActiveScalars(metric)
+            scalar = numpy_support.vtk_to_numpy(surf.GetPointData().GetArray(metric))
+            subject_scalars.append(scalar)
+            
+            #template surface can simply be 1st subject's mesh(es) (as all surfaces are template-based)
+            if subject == getsubid(mesh_list[0]):
+                appender.AddInputData(surf)
+                
+        
+        surf_data.append(np.concatenate(subject_scalars))
     
-    #exclude non applicable subjects
-    if sub_list is not None:
-        keep_idx = [i for i, m in enumerate(mesh_list) if any(sub in str(m) for sub in np.asarray(sub_list))]
-        surf_data = surf_data[keep_idx, :]
+    appender.Update()
+    surf_template = BSPolyData(appender.GetOutput()) #template mesh
+    surf_data = np.vstack(surf_data) #all subjects scalars
     
     #apply smoothing if applicable
     if smooth is not None and smooth > 0:
