@@ -10,6 +10,7 @@ import pandas as pd
 import pyvista as pv
 import os
 import re
+import copy
 from sklearn.decomposition import PCA
 from scipy.spatial.transform import Rotation
 from typing import Optional, Union, Sequence
@@ -723,9 +724,23 @@ def print_stats(subdir, mesh, base):
 #visualiser to look at the surface with the medial curve crossing through
 
 def vis_medialcurve(mesh, medial_curve, base='', subid=''):
+    
+    #flip for consistency with later mesh
+    def flip_y(polydata):
+        points = polydata.GetPoints()
+        for i in range(points.GetNumberOfPoints()):
+            x, y, z = points.GetPoint(i)
+            points.SetPoint(i, x, -y, z)
+        polydata.Modified()
+    
+    mesh_vis = copy.deepcopy(mesh)
+    medial_curve_vis = copy.deepcopy(medial_curve)
+    flip_y(mesh_vis)
+    flip_y(medial_curve_vis)
+    
     #surface mesh 
     subject_mapper = vtk.vtkPolyDataMapper()
-    subject_mapper.SetInputData(mesh)
+    subject_mapper.SetInputData(mesh_vis)
     subject_mapper.SetScalarVisibility(False)
     subject_actor = vtk.vtkActor()
     subject_actor.SetMapper(subject_mapper)
@@ -734,7 +749,7 @@ def vis_medialcurve(mesh, medial_curve, base='', subid=''):
     
     #curve mesh
     curve_mapper = vtk.vtkPolyDataMapper()
-    curve_mapper.SetInputData(medial_curve)
+    curve_mapper.SetInputData(medial_curve_vis)
     curve_actor = vtk.vtkActor()
     curve_actor.SetMapper(curve_mapper)
     curve_actor.GetProperty().SetColor(0, 0, 0) #black
@@ -750,8 +765,6 @@ def vis_medialcurve(mesh, medial_curve, base='', subid=''):
     render_window.SetSize(1200, 800)
     #flip Y axis of camera as VTK coord syst not following RAS
     renderer.ResetCamera()
-    camera = renderer.GetActiveCamera()
-    camera.SetViewUp(0, -1, 0)
     renderer.ResetCameraClippingRange()
     
     #add interactor for rotation
