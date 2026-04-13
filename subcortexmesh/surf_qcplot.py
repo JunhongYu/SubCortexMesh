@@ -66,8 +66,8 @@ def surf_qcplot(
         decimator = vtk.vtkQuadricDecimation()
         decimator.SetInputConnection(reader.GetOutputPort())
         #decimation stronger for bigger meshes
-        n_faces = reader.GetOutput().GetNumberOfCells()
-        reduction = 0.95 if n_faces > 10000 else 0.8
+        n_pts = reader.GetOutput().GetNumberOfPoints()
+        reduction = 0.95 if n_pts > 8000 else 0.9
         decimator.SetTargetReduction(reduction)
         #decimator.PreserveTopologyOn()
         decimator.Update()
@@ -156,8 +156,13 @@ def surf_qcplot(
             #rotate mesh if present inside volume slice
             if outline.n_points > 0:
                 meshcoords = rotate_points(meshcoords, current_rotation[axis], img.shape)
-                subplot.plot(meshcoords[:,0], meshcoords[:,1], '.', color=color, markersize=2)
-        
+                subplot.plot(meshcoords[:,0], meshcoords[:,1], ',', color=color, markersize=1)
+            lines = outline.lines.reshape(-1, 3)[:, 1:]  # strip cell count, get pairs of point indices
+            for i0, i1 in lines:
+                p0 = meshcoords[i0]
+                p1 = meshcoords[i1]
+                subplot.plot([p0[0], p1[0]], [p0[1], p1[1]], '-', color=color, linewidth=1)
+    
         subplot.set_title({'sag':"Sagittal",'ax':"Axial",'cor':"Coronal"}[axis])
         subplot.axis("off")
         
@@ -300,7 +305,7 @@ def surf_qcplot(
         legend_labels.append(os.path.splitext(fname)[0])
     
     fig.legend(legend_handles, legend_labels,
-            loc='center left', bbox_to_anchor=(0.79, 0.47),
+            loc='center left', bbox_to_anchor=(0.74, 0.47),
             ncol=1, fontsize='small')
     
     fig._widgets = [button_sag, slider_sag, button_ax, slider_ax, button_cor, slider_cor, button_mesh_prev, button_mesh_next]
