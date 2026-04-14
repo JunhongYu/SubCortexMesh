@@ -171,9 +171,11 @@ def subseg_getvol(
                     if not silent:
                         print('Cerebellar volumes found. Including their segmentations...')
                     
+                    #FSL's masking out of cerebellar ROIs (nibabel way is faster)
                     #max_args = " ".join([f"-max {f}" for f in cerebvol]) #depends on whether 1 or 2 are present
                     #_ = os.system(f"fslmaths {subvol} {max_args} {os.path.dirname(subvol)}/all_fast_firstseg_wcereb.nii.gz")
                     #subvol=f"{os.path.dirname(subvol)}/all_fast_firstseg_wcereb.nii.gz"
+                    
                     #Merges cerebellar volumes to the main segmentation volume
                     subvol_img = nib.load(subvol)
                     combined = subvol_img.get_fdata().copy()

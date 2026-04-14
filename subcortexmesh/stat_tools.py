@@ -2,7 +2,7 @@
 ##########Statistical analyses using random field theory cluster correction##########
 
 import vtk
-from vtk.util import numpy_support
+from vtkmodules.util import numpy_support
 import re
 import numpy as np
 import pyvista as pv

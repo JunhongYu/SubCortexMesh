@@ -2,7 +2,7 @@
 ##########extracting thickness and surface area measures in surface meshes########### 
 
 import vtk
-from vtk.util import numpy_support
+from vtkmodules.util import numpy_support
 from vtkmodules.vtkFiltersGeneral import vtkCurvatures
 from vtkmodules.vtkRenderingCore import vtkTextActor
 import numpy as np
@@ -204,7 +204,7 @@ def mesh_metrics(
                         #because the ends are usually differently shaped (not clear cut cylinder), 
                         #the slicing tends to go sideways at the ends of the curve, so we stop "drawing" after 80% of the 
                         #curve is complete, the last 10% will be assumed to be going straight along the same "core" direction. 
-                        #It's an assumption but it works well for aseg's subcortices
+                        #It's an assumption but it works well for the tested subcortices
                         #get "core" 80% of the medial curve
                         core = centroids[int(len(centroids) * 0.1):int(len(centroids) * 0.9)] #removes 10% tails of slices
                         #Will extend each end (remaining 10% tails) in a straight line until centroids intersect with mesh
@@ -537,7 +537,7 @@ def mesh_metrics(
                         subject_mesh, template_mesh,
                         subject_medial_curve, template_medial_curve)
                     
-                    #additional rigid alignment of subject mesh to template mesh at the vertex level 
+                    #additional alignment of subject mesh to template mesh at the vertex level 
                     #for optimisation (Iterative Closest Point)
                     icp = vtk.vtkIterativeClosestPointTransform()
                     icp.SetSource(aligned_subject_mesh)
