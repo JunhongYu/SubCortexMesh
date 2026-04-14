@@ -210,20 +210,26 @@ slm_model = slm_analysis(
 )
 ```
 
-Once the analysis is complete, the outputted maps in the SLM object (here slm_model) can be visualised as follows:
+Once the analysis is complete, the outputted cluster maps in the SLM object (here slm_model) can be visualised as follows:
 
 ``` python
 slm_plot(
   slm=slm_model, 
   stat='clusters',
   cmap='Blues',
-  #threshold= .05,
+  threshold= .05,
   smooth_mesh=10 #cosmetic mesh smoothing
   )
 ```
 
 ![](figures/rft_cluster_ageeffect.png)
 
-Other options for the "stat" argument include 't' for the t-statistics map, 'p_fdr' for the false discovery rate-corrected p-value map, 'p_rft' for the random field theory cluster corrected p-values.
+Other options for the "stat" argument include:
+
+-   't' for the t-statistics map
+-   't_fdr' for the t-statistics maps filtered via false discovery rate(FDR) significance (use threshold argument)
+-   't_fdr' for the t-statistics maps filtered via random field theory (RFT) cluster-corrected significance (use threshold argument)
+-   'p_fdr' for the FDR-corrected p-value map
+-   'p_rft' for the RFT cluster-corrected p-values.
 
 More advanced sets of analysis and plotting tools, including BrainStat's SLM as well as threshold-free cluster enhancement cluster analyses, are available in the R package [VertexWiseR](https://github.com/CogBrainHealthLab/VertexWiseR), which is able to [extract](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_surface_extraction.html) and [analyse](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_Example_3.html) outputs from SubCortexMesh.

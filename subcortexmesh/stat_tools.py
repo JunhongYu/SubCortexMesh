@@ -6,6 +6,7 @@ from vtkmodules.util import numpy_support
 import re
 import numpy as np
 import pyvista as pv
+import warnings
 from typing import Optional, Union, Sequence, Tuple
 from pathlib import Path
 from itertools import chain
@@ -185,16 +186,20 @@ def slm_plot(
     slm: SLM object
         BrainStat SLM object containing the statistical outputs.
     stat: str
-        Map to plot from the SLM object - 't' for the t-statistics map, 'p_fdr' for the false discovery rate-corrected p-value map, 'p_rft' for the random field theory cluster corrected p-values, or 'clusters' for the clusters.
+        Map to plot from the SLM object:
+        
+        - 't' for the t-statistics map
+        - 't_fdr' for the t-statistics map filtered based on significance after false discovery rate (FDR) (use threshold argument)
+        - 't_rft' for the t-statistics map filtered based on significance after random field theory (RFT) cluster-corrected p-values (use threshold argument)
+        - 'p_fdr' for the FDR-adjusted p-value map
+        - 'p_rft' for the RFT cluster corrected p-value map
+        - 'clusters' for the identified clusters
     threshold: float, optional
-        Thresholding value in which vertices are to be plotted (below the threshold for p-value
-        and clusters maps, or above the set threshold for t-statistics map).
+        Thresholding value in which vertices are to be plotted (plots values below the set threshold for t_fdr, t_rft, p_fdr_, p_rft, and clusters; above the threshold for t).
     cmap: str
         Name of the color map to be assigned to the background volume, as listed in matplotlib's colormaps. Default is "RdBu_r".
     clim: Tuple, optional
-        Sequence of float stating the minimum and maximum value of the color bar. Default is 
-        minimum and maximum value for the t-statitics maps, 0 to 0.05 for the p-value maps. It
-        is not applied for the clusters maps as colour values follow cluster IDs.
+        Sequence of float stating the minimum and maximum value of the color bar. Default is minimum and maximum value. It is not applied for the clusters maps as colour values follow cluster IDs.
     smooth_mesh: int, optional
         Number of iterations of cosmetic smoothing to make the surface appear smoother. Default is 0.
     """
@@ -220,34 +225,102 @@ def slm_plot(
         scalars = slm.t.squeeze()
         cmap = cmap
         if clim is None:
-            clim = [-max(abs(scalars)), max(abs(scalars))]
+            clim = [min(scalars), max(scalars)]
+        
+        #apply threshold
+        if threshold is not None:
+            mask = scalars < threshold #t: mask under threshold
+            scalars = scalars.copy().astype(float)
+            scalars[mask] = np.nan
+        
         title = 't-statistics'
+    
+    #t statistics (filtered through FDR significance)
+    elif stat == 't_fdr':
+        scalars = slm.t.squeeze()
+        if slm.Q is None:
+            raise ValueError('The "fdr" correction was not applied to this SLM model.')
+        else:
+            cmap = cmap
+            if clim is None:
+                clim = [min(scalars), max(scalars)]
+            #apply threshold according to FDR value
+            if threshold is None or threshold == 0:
+                warnings.warn('No threshold was indicated. t-values will be plotted regardless of FDR significance')
+            else:
+                scalars = slm.t.squeeze()
+                mask = np.abs(slm.Q) > threshold #p: mask above threshold
+                scalars = scalars.copy().astype(float)
+                scalars[mask] = np.nan
+            
+            title = 't-statistics (FDR)'
+    
+    #t statistics (filtered through RFT significance)
+    elif stat == 't_rft':
+        scalars = slm.t.squeeze()
+        if slm.P['pval']['C'] is None:
+            raise ValueError('The "rft" correction was not applied to this SLM model.')
+        else:
+            cmap = cmap
+            if clim is None:
+                clim = [min(scalars), max(scalars)]
+            #apply threshold according to FDR value
+            if threshold is None or threshold == 0:
+                warnings.warn('No threshold was indicated. t-values will be plotted regardless of RFT significance')
+            else:
+                scalars = slm.t.squeeze()
+                mask = np.abs(slm.P['pval']['C']) > threshold #p: mask above threshold
+                scalars = scalars.copy().astype(float)
+                scalars[mask] = np.nan
+            
+            title = 't-statistics (RFT)'
+    
     #p-vals (FDR)
     elif stat == 'p_fdr':
-        scalars = slm.Q 
-        cmap = cmap
-        if clim is None:
-            if max(scalars) > 0.05:
-                clim = [0, 0.05]
-            else:
-                clim = [0, max(scalars)]
-        title = 'q-value (FDR)'
+        if slm.Q is None:
+            raise ValueError('The "fdr" correction was not applied to this SLM model.')
+        else:
+            scalars = slm.Q 
+            #apply threshold
+            if threshold is not None:
+                mask = scalars > threshold
+                scalars = scalars.copy().astype(float)
+                scalars[mask] = np.nan
+            
+            cmap = cmap
+            if clim is None:
+                if threshold is not None:
+                    clim = [0, threshold]
+                else:
+                    clim = [0, max(scalars)]
+            title = 'p-value (FDR)'
+    
     #Cluster corrected p-values
     elif stat == 'p_rft':
-        scalars = slm.P['pval']['C']
-        cmap = cmap
-        if clim is None:
-            if max(scalars) > 0.05:
-                clim = [0, 0.05]
-            else:
-                clim = [0, max(scalars)]
-        title = 'p-value (RFT)'
+        if slm.P['pval']['C'] is None:
+            raise ValueError('The "rft" correction was not applied to this SLM model.')
+        else:
+            scalars = slm.P['pval']['C']
+            
+            #apply threshold
+            if threshold is not None:
+                mask = scalars > threshold
+                scalars = scalars.copy().astype(float)
+                scalars[mask] = np.nan
+            
+            cmap = cmap
+            if clim is None:
+                if threshold is not None:
+                    clim = [0, threshold]
+                else:
+                    clim = [0, max(scalars)]
+            title = 'p-value (RFT)'
     
     elif stat == 'clusters':
-        if threshold is None:
-            threshold=0.05
-        
         #get significant cluster IDs for both pos and neg contrasts
+        if threshold is None:
+            threshold=1.1
+        
         sig_pos_ids = slm.P['clus'][0].loc[slm.P['clus'][0]['P'] < threshold, 'clusid'].values if not slm.P['clus'][0].empty else []
         sig_neg_ids = slm.P['clus'][1].loc[slm.P['clus'][1]['P'] < threshold, 'clusid'].values if not slm.P['clus'][1].empty else []
         # default to zeros if no negative or positive cluster at all
@@ -257,7 +330,7 @@ def slm_plot(
         #zero out non-significant clusters
         pos_map[~np.isin(pos_map, sig_pos_ids)] = 0
         neg_map[~np.isin(neg_map, sig_neg_ids)] = 0
-    
+        
         #combine IDs
         scalars = pos_map.copy()
         scalars[neg_map != 0] = -neg_map[neg_map != 0]
@@ -267,16 +340,7 @@ def slm_plot(
         clim = None
         title = 'Significant clusters'
     else:
-        raise ValueError(f"'{stat}' is not applicable. Choose from: 't', 'p_fdr', 'p_rft', 'clusters'")
-    
-    #threshold
-    if threshold is not None and stat != 'clusters':
-        if stat == 't':
-            mask = np.abs(scalars) < threshold
-        else:  # p-values: mask above threshold
-            mask = scalars > threshold
-        scalars = scalars.copy().astype(float)
-        scalars[mask] = np.nan
+        raise ValueError(f"'{stat}' is not applicable. Choose from: 't', 't_fdr', 't_rft', 'p_fdr', 'p_rft', 'clusters'")
     
     #PyVista plotter
     mesh[title] = scalars
