@@ -9,6 +9,6 @@
    vol2surf
    surf_qcplot
    mesh_metrics
-   merge_all
+   merge_tools
    stat_tools
    template_data_fetch

@@ -94,49 +94,9 @@ def merge_all(
         merged_mesh = appendFilter.GetOutput()
         
         if plot_merged:
-            vis_merged(measure)
+            vis_merged(merged_vtk=merged_mesh)
         
         return merged_mesh
-    
-    ###################################################################
-    ###################################################################
-    
-    #plot function that plots all aseg surfaces together, and gives a slider to space them out from eachother
-    def vis_merged(measure):
-        #spaced out
-        #get all mesh 
-        all_meshes = [ load_mesh(os.path.join(inputdir, subid, fname)) for fname in mesh_list ]
-        #all vertex coordinates
-        all_points = np.vstack([pv.wrap(m).points for m in all_meshes])
-        #get centroid across all meshes
-        global_centroid = all_points.mean(axis=0) 
-        
-        plotter = pv.Plotter()
-        wrapped_meshes = [pv.wrap(m) for m in all_meshes]
-        #get mesh-wise centroids coordinates
-        centroids = [wm.points.mean(axis=0) for wm in wrapped_meshes]
-        #original points from which the slider will start
-        original_points = [wm.points.copy() for wm in wrapped_meshes]
-        #append meshes in plot
-        for wm in wrapped_meshes:
-            _ = plotter.add_mesh(wm, scalars=measure, cmap="viridis")
-        #Y flipped as VTK's coord syst not following RAS
-        plotter.reset_camera()
-        loc, foc, _ = plotter.camera_position
-        plotter.camera_position = [loc, foc, (0, -1, 1)]
-        #create a slider that increases or decrease distance from global centroid
-        def update_distance(distfactor):
-            for wm, centroid, orig in zip(wrapped_meshes, centroids, original_points):
-                direction = centroid - global_centroid
-                norm = np.linalg.norm(direction) #get normals
-                if norm > 0:
-                    direction = direction / norm
-                translation = direction * distfactor 
-                wm.points[:] = orig - centroid + (centroid + translation)
-            plotter.render()
-        
-        plotter.add_slider_widget(update_distance, rng=[0, 50], value=0)
-        plotter.show(title=f"{subid} - {measure}")
     
     ###################################################################
     ###################################################################
@@ -206,3 +166,104 @@ def merge_all(
             else:
                 if not silent: 
                     print(f"=> {measure} already merged")
+                    
+                
+###################################################################
+###################################################################
+
+#interactive plot function that plots all surfaces together, and gives a slider to space them out from eachother
+def vis_merged(
+    merged_vtk: Union[str, Path, vtk.vtkPolyData], 
+    cmap: str = "viridis", 
+    smooth_mesh:  Optional[int] = 0,
+    ):
+    """Interactive 3D viewer for a merged subcortical surface.
+    
+    Loads a merged mesh produced by merge_all(), separates ROIs by
+    roi_id, and displays them with a slider to spread the structures 
+    apart from their global centroid.
+    
+    Authors: Charly H.A. Billaud, Nicolas P.M. Lavarde
+    
+    Parameters
+    ----------
+    merged_vtk : str, Path, vtk.vtkPolyData 
+        Path to the merged .vtk file produced by merge_all() or the VTK polydata variable itself
+    cmap: str
+        Name of the color map to be assigned to the background volume, as listed in matplotlib's colormaps. Default is "viridis".
+    smooth_mesh: int, optional
+        Number of iterations of cosmetic smoothing to make the surface appear smoother. Default is 0.
+    """
+    if isinstance(merged_vtk, (str, Path)):
+        reader = vtk.vtkPolyDataReader()
+        reader.SetFileName(str(merged_vtk))
+        reader.Update()
+        mesh = pv.wrap(reader.GetOutput())
+    else:
+        mesh = pv.wrap(merged_vtk)
+    
+    #appearance smoother
+    if smooth_mesh is not None and smooth_mesh > 0:
+        s = vtk.vtkWindowedSincPolyDataFilter()
+        s.SetInputData(mesh)
+        s.SetNumberOfIterations(smooth_mesh)
+        s.SetPassBand(0.001)
+        s.NonManifoldSmoothingOn()
+        s.NormalizeCoordinatesOn()
+        s.Update()
+        mesh=pv.wrap(s.GetOutput())
+    
+    if 'roi_id' not in mesh.point_data.keys():
+        raise ValueError(
+            f"'roi_id' point array not found in {merged_vtk}. "
+            "Make sure the file was produced by merge_all()."
+        )
+    
+    roi_ids = np.array(mesh.point_data['roi_id']).astype(int)
+    n_roi = int(roi_ids.max()) + 1
+    
+    wrapped_meshes = []
+    for i in range(n_roi):
+        mask = roi_ids == i
+        if not mask.any():
+            continue
+        sub_ug = mesh.extract_points(mask, adjacent_cells=False)
+        sub = sub_ug.extract_surface(algorithm='dataset_surface')
+        wrapped_meshes.append(sub)
+    
+    all_points = np.vstack([wm.points for wm in wrapped_meshes])
+    global_centroid = all_points.mean(axis=0)
+    
+    centroids = [wm.points.mean(axis=0) for wm in wrapped_meshes]
+    original_points = [wm.points.copy() for wm in wrapped_meshes]
+    
+    plotter = pv.Plotter()
+    measure = mesh.active_scalars_name
+    if measure is None:
+        raise ValueError(
+            "No active scalar (surface-based metric) found in the mesh. Make sure the file was produced by merge_all()."
+        )
+    for wm in wrapped_meshes:
+        _ = plotter.add_mesh(wm, scalars=measure, cmap=cmap)
+    
+    # Y flipped as VTK's coord syst not following RAS
+    plotter.reset_camera()
+    loc, foc, _ = plotter.camera_position
+    plotter.camera_position = [loc, foc, (0, -1, 1)]
+    
+    def update_distance(distfactor):
+        for wm, centroid, orig in zip(wrapped_meshes, centroids, original_points):
+            direction = centroid - global_centroid
+            norm = np.linalg.norm(direction)
+            if norm > 0:
+                direction = direction / norm
+            translation = direction * distfactor
+            wm.points[:] = orig - centroid + (centroid + translation)
+        plotter.render()
+    
+    plotter.add_slider_widget(update_distance, rng=[0, 50], value=0)
+    if isinstance(merged_vtk, (str, Path)):
+        plotter.show(title=f"{str(merged_vtk)} - {measure}")
+    else:
+        plotter.show(title=f"{measure}")
+

@@ -1,7 +1,7 @@
-merge_all
+merge_tools
 =========
 
-.. automodule:: subcortexmesh.merge_all
+.. automodule:: subcortexmesh.merge_tools
    :members:
    :undoc-members:
    :show-inheritance:
