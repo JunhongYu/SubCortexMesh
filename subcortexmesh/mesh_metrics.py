@@ -588,6 +588,7 @@ def mesh_metrics(
                         
                         saved_mesh = vtk.vtkPolyData()
                         saved_mesh.DeepCopy(template_mesh) 
+                        saved_mesh.GetPointData().Initialize() #clears all arrays
                         saved_mesh.GetPointData().SetScalars(template_scalar_array)
                         
                         #guarantee overwriting

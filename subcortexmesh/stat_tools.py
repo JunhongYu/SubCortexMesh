@@ -174,7 +174,7 @@ def slm_plot(
     slm, 
     stat: str, 
     threshold: Optional[float] = None, 
-    cmap: str = 'RdBu_r', 
+    cmap: str = None, 
     clim: Optional[Tuple[float, float]] = None,
     smooth_mesh:  Optional[int] = 0
     ):
@@ -190,14 +190,15 @@ def slm_plot(
         
         - 't' for the t-statistics map
         - 't_fdr' for the t-statistics map filtered based on significance after false discovery rate (FDR) (use threshold argument)
-        - 't_rft' for the t-statistics map filtered based on significance after random field theory (RFT) cluster-corrected p-values (use threshold argument)
+        - 't_rft' for the t-statistics map filtered based on significance of random field theory (RFT) clusters-wise p-values (use threshold argument)
         - 'p_fdr' for the FDR-adjusted p-value map
-        - 'p_rft' for the RFT cluster corrected p-value map
+        - 'p_rft' for the p-value map filtered based on significance of random field theory (RFT) clusters-wise p-values (use threshold argument)
         - 'clusters' for the identified clusters
     threshold: float, optional
         Thresholding value in which vertices are to be plotted (plots values below the set threshold for t_fdr, t_rft, p_fdr_, p_rft, and clusters; above the threshold for t).
     cmap: str
-        Name of the color map to be assigned to the background volume, as listed in matplotlib's colormaps. Default is "RdBu_r".
+        Name of the color map to be assigned to the background volume, as listed in matplotlib's colormaps. Default is "RdBu_r" if the plot shows both negative
+        and positive effects, 'Blues_r' for negative only, 'Reds' for positive only.
     clim: Tuple, optional
         Sequence of float stating the minimum and maximum value of the color bar. Default is minimum and maximum value. It is not applied for the clusters maps as colour values follow cluster IDs.
     smooth_mesh: int, optional
@@ -223,16 +224,29 @@ def slm_plot(
     #t statistics
     if stat == 't':
         scalars = slm.t.squeeze()
-        cmap = cmap
-        if clim is None:
-            clim = [min(scalars), max(scalars)]
-        
         #apply threshold
         if threshold is not None:
             mask = scalars < threshold #t: mask under threshold
             scalars = scalars.copy().astype(float)
             scalars[mask] = np.nan
         
+        if cmap is None:
+            if np.nanmin(scalars) < 0 and np.nanmax(scalars) > 0:
+                cmap = 'RdBu_r'
+            elif np.nanmin(scalars) > 0:
+                cmap = 'Reds'
+            elif np.nanmax(scalars) < 0:
+                cmap = 'Blues_r'
+        else:
+            cmap = cmap
+        
+        if clim is None:
+            if np.nanmin(scalars) > 0:
+                clim = [0, np.nanmax(scalars)]
+            elif np.nanmax(scalars) < 0:
+                clim = [np.nanmin(scalars), 0]
+            else:
+                clim = [np.nanmin(scalars), np.nanmax(scalars)]
         title = 't-statistics'
     
     #t statistics (filtered through FDR significance)
@@ -241,9 +255,6 @@ def slm_plot(
         if slm.Q is None:
             raise ValueError('The "fdr" correction was not applied to this SLM model.')
         else:
-            cmap = cmap
-            if clim is None:
-                clim = [min(scalars), max(scalars)]
             #apply threshold according to FDR value
             if threshold is None or threshold == 0:
                 warnings.warn('No threshold was indicated. t-values will be plotted regardless of FDR significance')
@@ -253,28 +264,70 @@ def slm_plot(
                 scalars = scalars.copy().astype(float)
                 scalars[mask] = np.nan
             
+            if cmap is None:
+                if np.nanmin(scalars) < 0 and np.nanmax(scalars) > 0:
+                    cmap = 'RdBu_r'
+                elif np.nanmin(scalars) > 0:
+                    cmap = 'Reds'
+                elif np.nanmax(scalars) < 0:
+                    cmap = 'Blues_r'
+            else:
+                cmap = cmap
+            
+            if clim is None:
+                if np.nanmin(scalars) > 0:
+                    clim = [0, np.nanmax(scalars)]
+                elif np.nanmax(scalars) < 0:
+                    clim = [np.nanmin(scalars), 0]
+                else:
+                    clim = [np.nanmin(scalars), np.nanmax(scalars)]
             title = 't-statistics (FDR)'
     
     #t statistics (filtered through RFT significance)
     elif stat == 't_rft':
-        scalars = slm.t.squeeze()
-        if slm.P['pval']['C'] is None:
-            raise ValueError('The "rft" correction was not applied to this SLM model.')
+        if threshold is None:
+            threshold=1.01 #all clusters
+        
+        if slm.P['clus'][0].empty and slm.P['clus'][1].empty:
+            raise ValueError('No RFT clusters were generated in this SLM model.')
         else:
-            cmap = cmap
-            if clim is None:
-                clim = [min(scalars), max(scalars)]
-            #apply threshold according to FDR value
-            if threshold is None or threshold == 0:
-                warnings.warn('No threshold was indicated. t-values will be plotted regardless of RFT significance')
-            else:
-                scalars = slm.t.squeeze()
-                mask = np.abs(slm.P['pval']['C']) > threshold #p: mask above threshold
-                scalars = scalars.copy().astype(float)
-                scalars[mask] = np.nan
+            #get vertex values belonging to identified clusters
+            scalars = np.full(slm.t.squeeze().shape, np.nan) #placeholder
+            #loop across positive and negative cluvets
+            for sign_idx, clus_df in enumerate([slm.P['clus'][0], slm.P['clus'][1]]):
+                if clus_df.empty:
+                    continue
+                clusid_map = slm.P['clusid'][sign_idx].squeeze()
+                t_map = slm.t.squeeze()
+                #remove clusters below threshold
+                for _, row in clus_df.iterrows():
+                    if row['P'] < threshold:
+                        scalars[clusid_map == row['clusid']] = t_map[clusid_map == row['clusid']]
             
+            if cmap is None:
+                #based on presence of negative or positive clusters (if not empty)
+                has_pos = not slm.P['clus'][0].empty and (slm.P['clus'][0]['P'] < threshold).any()
+                has_neg = not slm.P['clus'][1].empty and (slm.P['clus'][1]['P'] < threshold).any()
+                if has_pos and has_neg:
+                    cmap = 'RdBu_r'
+                elif has_pos:
+                    cmap = 'Reds'
+                elif has_neg:
+                    cmap = 'Blues_r'
+                else:
+                    cmap = 'RdBu_r' 
+            else:
+                cmap = cmap
+            
+            if clim is None:
+                if np.nanmin(scalars) > 0:
+                    clim = [0, np.nanmax(scalars)]
+                elif np.nanmax(scalars) < 0:
+                    clim = [np.nanmin(scalars), 0]
+                else:
+                    clim = [np.nanmin(scalars), np.nanmax(scalars)]
             title = 't-statistics (RFT)'
-    
+            
     #p-vals (FDR)
     elif stat == 'p_fdr':
         if slm.Q is None:
@@ -287,39 +340,62 @@ def slm_plot(
                 scalars = scalars.copy().astype(float)
                 scalars[mask] = np.nan
             
-            cmap = cmap
+            if cmap is None:
+                cmap='RdBu_r'
+            else:
+                cmap = cmap
+            
             if clim is None:
                 if threshold is not None:
                     clim = [0, threshold]
                 else:
-                    clim = [0, max(scalars)]
-            title = 'p-value (FDR)'
+                    clim = [0, np.nanmax(scalars)]
+            title = 'p-values (FDR)'
     
     #Cluster corrected p-values
     elif stat == 'p_rft':
-        if slm.P['pval']['C'] is None:
-            raise ValueError('The "rft" correction was not applied to this SLM model.')
+        if threshold is None:
+            threshold=1.01 #all clusters
+        
+        if slm.P['clus'][0].empty and slm.P['clus'][1].empty:
+            raise ValueError('No RFT clusters were generated in this SLM model.')
         else:
-            scalars = slm.P['pval']['C']
+            #get vertex values belonging to identified clusters
+            scalars = np.full(slm.P['pval']['C'].shape, np.nan) #placeholder
+            #loop across positive and negative cluvets
+            for sign_idx, clus_df in enumerate([slm.P['clus'][0], slm.P['clus'][1]]):
+                if clus_df.empty:
+                    continue
+                clusid_map = slm.P['clusid'][sign_idx].squeeze()
+                p_map=slm.P['pval']['C']
+                #remove clusters below threshold
+                for _, row in clus_df.iterrows():
+                    if row['P'] < threshold:
+                        scalars[clusid_map == row['clusid']] = p_map[clusid_map == row['clusid']]
             
-            #apply threshold
-            if threshold is not None:
-                mask = scalars > threshold
-                scalars = scalars.copy().astype(float)
-                scalars[mask] = np.nan
-            
-            cmap = cmap
-            if clim is None:
-                if threshold is not None:
-                    clim = [0, threshold]
+            if cmap is None:
+                #based on presence of negative or positive clusters (if not empty)
+                has_pos = not slm.P['clus'][0].empty and (slm.P['clus'][0]['P'] < threshold).any()
+                has_neg = not slm.P['clus'][1].empty and (slm.P['clus'][1]['P'] < threshold).any()
+                if has_pos and has_neg:
+                    cmap = 'RdBu_r'
+                elif has_pos:
+                    cmap = 'Reds'
+                elif has_neg:
+                    cmap = 'Blues_r'
                 else:
-                    clim = [0, max(scalars)]
-            title = 'p-value (RFT)'
+                    cmap = 'RdBu_r' 
+            else:
+                cmap = cmap
+            
+            if clim is None:
+                clim = [0, np.nanmax(scalars)]
+            title = 'p-values (RFT)'
     
     elif stat == 'clusters':
         #get significant cluster IDs for both pos and neg contrasts
         if threshold is None:
-            threshold=1.1
+            threshold=1.01 #all clusters
         
         sig_pos_ids = slm.P['clus'][0].loc[slm.P['clus'][0]['P'] < threshold, 'clusid'].values if not slm.P['clus'][0].empty else []
         sig_neg_ids = slm.P['clus'][1].loc[slm.P['clus'][1]['P'] < threshold, 'clusid'].values if not slm.P['clus'][1].empty else []
