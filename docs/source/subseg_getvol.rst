@@ -5,4 +5,3 @@ subseg_getvol
    :members:
    :undoc-members:
    :show-inheritance:
-```

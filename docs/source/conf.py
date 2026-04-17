@@ -33,6 +33,8 @@ autodoc_mock_imports = [
     'vtkmodules',
     'numpy',
     'pandas',
+    'matplotlib',
+    'mpl_toolkits',
     'nibabel',
     'scipy',
     'sklearn',

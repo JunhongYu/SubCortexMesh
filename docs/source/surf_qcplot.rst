@@ -5,4 +5,3 @@ surf_qcplot
    :members:
    :undoc-members:
    :show-inheritance:
-```

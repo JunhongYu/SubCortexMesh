@@ -5,4 +5,3 @@ stat_tools
    :members:
    :undoc-members:
    :show-inheritance:
-```

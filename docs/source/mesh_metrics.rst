@@ -5,4 +5,3 @@ mesh_metrics
    :members:
    :undoc-members:
    :show-inheritance:
-```
