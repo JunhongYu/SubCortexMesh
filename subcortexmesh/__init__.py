@@ -16,6 +16,7 @@ __all__ = [
     "vol2surf",
     "mesh_metrics",
     "merge_all",
+    "vis_merged",
     "surf_qcplot",
     "slm_analysis",
     "slm_plot"
