@@ -227,9 +227,9 @@ slm_plot(
 Other options for the "stat" argument include:
 
 -   't' for the t-statistics map
--   't_fdr' for the t-statistics maps filtered via false discovery rate(FDR) significance (use threshold argument)
+-   't_fdr' for the t-statistics maps filtered via false discovery rate (FDR) significance (use threshold argument)
 -   't_rft' for the t-statistics maps  filtered based on significance of random field theory (RFT) cluster-wise p-values (use threshold argument)
 -   'p_fdr' for the FDR-corrected p-value map
--   'p_rft' for the p-values filtered based on significance of random field theory (RFT) cluster-wise p-values (use threshold argument)
+-   'p_rft' for the p-values filtered based on significance of RFT cluster-wise p-values (use threshold argument)
 
 More advanced sets of analysis and plotting tools, including BrainStat's SLM as well as threshold-free cluster enhancement cluster analyses, are available in the R package [VertexWiseR](https://github.com/CogBrainHealthLab/VertexWiseR), which is able to [extract](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_surface_extraction.html) and [analyse](https://cogbrainhealthlab.github.io/VertexWiseR/articles/VertexWiseR_Example_3.html) outputs from SubCortexMesh.

@@ -50,6 +50,15 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+html_show_sourcelink = False
+
+html_context = {
+    "display_github": True,
+    "github_user": "chabld",
+    "github_repo": "SubCortexMesh",
+    "github_version": "main",
+    "conf_py_path": "/docs/",  # path to your docs/ in the repo
+}
 
 autodoc_default_options = {
     'members': True,
