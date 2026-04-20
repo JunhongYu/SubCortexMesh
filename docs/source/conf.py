@@ -40,7 +40,6 @@ autodoc_mock_imports = [
     'sklearn',
     'brainstat',
     'brainspace',
-    'matplotlib',
     'requests',
 ]
 
@@ -57,7 +56,7 @@ html_context = {
     "github_user": "chabld",
     "github_repo": "SubCortexMesh",
     "github_version": "main",
-    "conf_py_path": "/docs/",  # path to your docs/ in the repo
+    "conf_py_path": "/docs/source/", 
 }
 
 autodoc_default_options = {
