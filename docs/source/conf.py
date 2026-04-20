@@ -9,8 +9,8 @@ sys.path.insert(0, os.path.abspath('../..')) #sphinx access
 
 # -- Project information -----------------------------------------------------
 project = 'SubCortexMesh'
-copyright = '2026, Charly H. A. Billaud'
-author = 'Charly H. A. Billaud, Cognitive and Brain Health Laboratory - Nanyang Technological University'
+copyright = '2026, Cognitive and Brain Health Laboratory - Nanyang Technological University'
+author = 'Charly H. A. Billaud, Junhong Yu'
 release = '0.0.1'
 
 # -- General configuration ---------------------------------------------------

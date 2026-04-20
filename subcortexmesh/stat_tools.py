@@ -190,9 +190,9 @@ def slm_plot(
         
         - 't' for the t-statistics map
         - 't_fdr' for the t-statistics map filtered based on significance after false discovery rate (FDR) (use threshold argument)
-        - 't_rft' for the t-statistics map filtered based on significance of random field theory (RFT) clusters-wise p-values (use threshold argument)
+        - 't_rft' for the t-statistics map filtered based on significance of random field theory (RFT) cluster-wise p-values (use threshold argument)
         - 'p_fdr' for the FDR-adjusted p-value map
-        - 'p_rft' for the p-value map filtered based on significance of random field theory (RFT) clusters-wise p-values (use threshold argument)
+        - 'p_rft' for the p-value map filtered based on significance of random field theory (RFT) cluster-wise p-values (use threshold argument)
         - 'clusters' for the identified clusters
     threshold: float, optional
         Thresholding value in which vertices are to be plotted (plots values below the set threshold for t_fdr, t_rft, p_fdr_, p_rft, and clusters; above the threshold for t).
