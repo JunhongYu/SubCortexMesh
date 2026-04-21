@@ -19,7 +19,10 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'myst_parser',
+    'sphinx_rtd_dark_mode',
 ]
+
+default_dark_mode = True #default to dark
 
 myst_enable_extensions = [
     "footnote",
